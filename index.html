@@ -82,10 +82,14 @@
   .logcol{flex:1; min-width:0; min-height:0;}
   #logCol1{overflow-y:auto;}
   #logCol2{display:none; overflow-y:auto; padding-left:6px;}
-  .lrow{display:grid; grid-template-columns:2.4em 1fr 2.4em; gap:4px; align-items:center; padding:3px 6px; border-bottom:1px solid #1c3149;}
+  .lrow{display:grid; grid-template-columns:1.8em 2.2em 1fr 2.2em; gap:3px; align-items:center; padding:3px 5px; border-bottom:1px solid #1c3149;}
+  .lrow .idx{color:var(--muted); font-size:11px; text-align:center;}
   .lrow .mi{color:var(--azulc); font-weight:700; text-align:center;}
   .lrow .jg{font-weight:600;}
   .lrow .ri{color:#ff8a80; font-weight:700; text-align:center;}
+  .lrow.cab{position:sticky; top:0; background:var(--panel); z-index:1; border-bottom:1px solid var(--line);}
+  .lrow.cab span{color:var(--muted); font-size:10px; font-weight:700; text-align:center; text-transform:uppercase;}
+  .lrow.cab span:nth-child(3){text-align:left;}
   .lrow.sep{display:block; color:var(--amar); font-style:italic; font-size:12px; text-align:center;}
 
   #entrada{display:flex; align-items:center; gap:8px; font-size:15px; min-height:24px;}
@@ -105,6 +109,7 @@
   .bacc .half.neg:active{background:rgba(0,0,0,.52);}
   .bacc .half.pos:active{background:rgba(255,255,255,.42);}
   .bacc.armado{outline:3px solid var(--sel); outline-offset:-3px;}
+  .bacc.deshab{opacity:.38; filter:grayscale(.6);}
   .bS{background:var(--verde);} .bA{background:var(--azul);} .bB{background:#00838f;}
   .bD{background:var(--naranja);} .bR{background:var(--morado);} .bE{background:var(--rojo);}
 
@@ -147,6 +152,7 @@
   table.stat td.nom{text-align:left;}
   table.stat .num{font-weight:800; color:var(--azulc);}
   table.stat .neg{color:#ff8a80; font-size:11px;}
+  table.stat .dr{color:#ff8a80; font-weight:700;}
   table.stat tr.tot td{font-weight:800; border-top:2px solid var(--line); background:#0c1a2c;}
   table.stat .ef{font-weight:800;}
 </style>
@@ -223,17 +229,17 @@
       <button id="btnStats" title="Estadísticas">📊</button>
       <button id="btnExport" title="Exportar">⬇</button>
     </div>
-  </div>
-  <div id="colDer">
-    <div class="box" id="boxTabla">
-      <div class="tit">Registro · Mis pts · Jugada · Pts rival</div>
-      <div id="tablaWrap"><div id="logCol1" class="logcol"></div><div id="logCol2" class="logcol"></div></div>
-    </div>
     <div class="box leyenda" id="boxLeyenda">
       <b>Cómo anotar:</b> toca la acción y luego la jugadora. El <b>Saque</b> se asigna solo a la de P1.
       S/A/B: mitad derecha ＋ = punto tuyo · izquierda － = error (punto rival). D/R = punto rival · E = error rival (punto tuyo).
       El set se cierra solo a 25 (15 en el decisivo) con 2 de diferencia.
       <button id="btnNuevoPartido" style="background:var(--rojo);padding:8px 10px;margin-top:8px;width:100%">⟲ Terminar / Nuevo partido</button>
+    </div>
+  </div>
+  <div id="colDer">
+    <div class="box" id="boxTabla">
+      <div class="tit">Registro de jugadas</div>
+      <div id="tablaWrap"><div id="logCol1" class="logcol"></div><div id="logCol2" class="logcol"></div></div>
     </div>
   </div>
 </div>
@@ -403,14 +409,18 @@ function render(){
   $("#mSetsA").textContent="Sets: "+S.setsA; $("#mSetsR").textContent="Sets: "+S.setsR;
   $("#mSaque").textContent=S.sacando?"◀ A":"R ▶";
   $("#setInfo").textContent=`Set ${S.set} de ${S.bestOf}`+(S.terminado?" · PARTIDO TERMINADO":"");
+  // bloquear el botón de Saque si no saca mi equipo
+  const dis=!S.sacando;
+  document.querySelectorAll('#acciones .bS .half').forEach(b=>b.disabled=dis);
+  document.querySelector('#acciones .bS').classList.toggle('deshab', dis);
   renderCancha(); renderTabla(); renderEntrada();
 }
 function renderCancha(){
   const c=$("#cancha"); c.innerHTML="";
   const fila=lista=>lista.forEach(p=>{
-    const num=S.rotacion[p], esLib=S.libero&&num===S.libero.num, esSaque=(p===1);
+    const num=S.rotacion[p], esLib=S.libero&&num===S.libero.num, esSaque=(p===1 && S.sacando);
     const div=document.createElement("div");
-    div.className="pos"+(sel&&sel.pos===p?" sel":"")+(esLib?" lib":"")+(esSaque?" saca":"")+(esSaque&&S.sacando?" sacaAhora":"");
+    div.className="pos"+(sel&&sel.pos===p?" sel":"")+(esLib?" lib":"")+(esSaque?" saca sacaAhora":"");
     div.innerHTML=`<span class="znum">P${p}</span>${esSaque?'<span class="saca-badge">🏐</span>':''}<span class="jnum">${num??"—"}</span><span class="jnom">${(S.nombres[num]||"").slice(0,10)}</span>`;
     div.onclick=()=>seleccionar(p,num); c.appendChild(div);
   });
@@ -426,23 +436,26 @@ function renderEntrada(){
   else $("#entSel").textContent="—";
 }
 function marcarArmado(){ $$("#acciones .bacc").forEach(b=>b.classList.toggle("armado", accionPendiente && b.dataset.t===accionPendiente[0])); }
-function crearFilaLog(e){
+function crearCabecera(){ const d=document.createElement("div"); d.className="lrow cab"; d.innerHTML=`<span>#</span><span>PTS+</span><span>Jugada</span><span>PTS-</span>`; return d; }
+function crearFilaLog(e,n){
   const d=document.createElement("div");
   if(e.separador){ d.className="lrow sep"; d.textContent=e.accion; return d; }
   d.className="lrow";
   const jug=e.sub?`⇄ entra ${e.entra} · sale ${e.sale}`:(e.jugadora!=null?e.accion+" "+e.jugadora:e.accion);
-  d.innerHTML=`<span class="mi">${e.miPunto?e.puntosA:""}</span><span class="jg">${jug}</span><span class="ri">${e.rivalPunto?e.puntosR:""}</span>`;
+  d.innerHTML=`<span class="idx">${n}</span><span class="mi">${e.miPunto?e.puntosA:""}</span><span class="jg">${jug}</span><span class="ri">${e.rivalPunto?e.puntosR:""}</span>`;
   return d;
 }
 function renderTabla(){
   const col1=$("#logCol1"), col2=$("#logCol2"); col1.innerHTML=""; col2.innerHTML="";
   const landscape=window.matchMedia("(orientation:landscape)").matches;
-  const filas=S.log.map(crearFilaLog);
+  let n=0;
+  const filas=S.log.map(e=> crearFilaLog(e, e.separador?null:(++n)) );
+  col1.appendChild(crearCabecera());
   if(!landscape){ filas.forEach(f=>col1.appendChild(f)); col1.scrollTop=col1.scrollHeight; return; }
   // apaisado: llenar col1 hasta desbordar; el resto a col2 (que hace scroll)
   let lleno=false;
   for(const f of filas){
-    if(!lleno){ col1.appendChild(f); if(col1.scrollHeight>col1.clientHeight+1){ col1.removeChild(f); lleno=true; col2.appendChild(f); } }
+    if(!lleno){ col1.appendChild(f); if(col1.scrollHeight>col1.clientHeight+1){ col1.removeChild(f); lleno=true; col2.appendChild(crearCabecera()); col2.appendChild(f); } }
     else col2.appendChild(f);
   }
   col2.scrollTop=col2.scrollHeight;
@@ -475,9 +488,9 @@ function chequearLiberoFrontal(){
   if(!S.liberoEnCancha) return;
   let lp=null; for(const p in S.rotacion){ if(String(S.rotacion[p])===String(S.libero.num)) lp=+p; }
   if(lp && FRONT_POS.includes(lp)){
-    const vuelve=S.numReemplazado, libNum=S.libero.num;
+    const vuelve=S.numReemplazado;
     S.rotacion[lp]=vuelve; S.liberoEnCancha=false; S.numReemplazado=null;
-    aviso(`⚠️ El líbero (Nº ${libNum}) rotó a zona delantera (P${lp}).\nSale el líbero y entra de nuevo la Nº ${vuelve}.`);
+    banner(`🔄 Sale el líbero · entra Nº ${vuelve}`);
   }
 }
 function chequearFinSet(){
@@ -584,12 +597,12 @@ function mostrarStats(){
     const tr=document.createElement("tr");
     tr.innerHTML=`<td class="nom"><span class="num">${n}</span> ${(S.nombres[n]||"").slice(0,10)}</td>
       <td>${celda(s.Sp,s.Sn)}</td><td>${celda(s.Ap,s.An)}</td><td>${celda(s.Bp,s.Bn)}</td>
-      <td><b>${pts||""}</b></td><td>${s.D||""}</td><td>${s.R||""}</td><td class="ef">${ef==null?"—":ef+"%"}</td>`;
+      <td><b>${pts||""}</b></td><td class="dr">${s.D?("-"+s.D):""}</td><td class="dr">${s.R?("-"+s.R):""}</td><td class="ef">${ef==null?"—":ef+"%"}</td>`;
     tb.appendChild(tr);
   });
   const ptsT=T.Sp+T.Ap+T.Bp, negT=T.Sn+T.An+T.Bn+T.D+T.R, efT=(ptsT+negT)?Math.round(ptsT/(ptsT+negT)*100):null;
   const trT=document.createElement("tr"); trT.className="tot";
-  trT.innerHTML=`<td class="nom">TOTAL</td><td>${celda(T.Sp,T.Sn)}</td><td>${celda(T.Ap,T.An)}</td><td>${celda(T.Bp,T.Bn)}</td><td>${ptsT}</td><td>${T.D}</td><td>${T.R}</td><td>${efT==null?"—":efT+"%"}</td>`;
+  trT.innerHTML=`<td class="nom">TOTAL</td><td>${celda(T.Sp,T.Sn)}</td><td>${celda(T.Ap,T.An)}</td><td>${celda(T.Bp,T.Bn)}</td><td>${ptsT}</td><td class="dr">${T.D?("-"+T.D):0}</td><td class="dr">${T.R?("-"+T.R):0}</td><td>${efT==null?"—":efT+"%"}</td>`;
   tb.appendChild(trT);
   $("#statExtra").innerHTML=`Puntos por <b>error del rival (E)</b>: ${er}`;
   mostrar("stats");
@@ -622,8 +635,11 @@ async function compartir(){
 function guardar(){ localStorage.setItem(LS_KEY, JSON.stringify(S)); }
 let toastT;
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),2200); }
-let bannerT;
-function banner(msg){ const b=$("#saqueBanner"); b.textContent=msg; b.classList.add("show"); clearTimeout(bannerT); bannerT=setTimeout(()=>b.classList.remove("show"),2400); }
+let bannerCola=[], bannerOn=false;
+function banner(msg){ bannerCola.push(msg); if(!bannerOn) sigBanner(); }
+function sigBanner(){ const b=$("#saqueBanner"); if(!bannerCola.length){ bannerOn=false; b.classList.remove("show"); return; }
+  bannerOn=true; b.textContent=bannerCola.shift(); b.classList.add("show");
+  setTimeout(()=>{ b.classList.remove("show"); setTimeout(sigBanner,300); }, 2200); }
 function anunciarSaque(){ if(S && S.sacando) banner(`🏐 Saca la Nº ${S.rotacion[1]}`); }
 
 /* ----- EVENTOS ----- */
