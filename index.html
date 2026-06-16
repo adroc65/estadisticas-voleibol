@@ -52,7 +52,10 @@
   .jChk{width:22px; height:22px; accent-color:var(--azulc);}
   .btnDel{background:transparent; font-size:18px; padding:4px 6px;}
 
+  /* ---------- JUEGO ---------- */
   #juego{max-width:520px; margin:0 auto; padding:8px; display:flex; flex-direction:column; gap:8px;}
+  #colIzq,#colDer{display:contents;}
+  #boxMarcador{order:1;} #boxRot{order:2;} #boxTabla{order:3;} #boxEntrada{order:4;} #acciones{order:5;} #utiles{order:6;} #boxLeyenda{order:7;}
   .box{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:10px;}
   .box .tit{font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin-bottom:6px;}
   #marcador{display:flex; align-items:center; justify-content:space-between; gap:8px;}
@@ -74,17 +77,18 @@
   .pos.lib{border-color:var(--amar);}
   .pos.lib .jnum{color:var(--amar);}
   .reddiv{grid-column:1/4; height:0; border-top:2px dashed #4a6a8a; margin:1px 0;}
-  #tablaWrap{max-height:34vh; overflow-y:auto;}
-  table.log{width:100%; border-collapse:collapse; font-size:14px;}
-  table.log th{position:sticky; top:0; background:var(--panel); color:var(--muted); font-size:11px; padding:4px; border-bottom:1px solid var(--line);}
-  table.log td{padding:4px 6px; border-bottom:1px solid #1c3149; text-align:center;}
-  table.log td.b{text-align:left; font-weight:600;}
-  table.log tr.sep td{color:var(--amar); font-style:italic; font-size:12px; text-align:center;}
-  table.log .mi{color:var(--azulc); font-weight:700;}
-  table.log .ri{color:#ff8a80; font-weight:700;}
+
+  #tablaWrap{max-height:34vh; overflow:auto;}
+  #tablaLog{font-size:14px;}
+  .lrow{display:grid; grid-template-columns:2.4em 1fr 2.4em; gap:4px; align-items:center; padding:3px 6px; border-bottom:1px solid #1c3149; break-inside:avoid;}
+  .lrow .mi{color:var(--azulc); font-weight:700; text-align:center;}
+  .lrow .jg{font-weight:600;}
+  .lrow .ri{color:#ff8a80; font-weight:700; text-align:center;}
+  .lrow.sep{display:block; color:var(--amar); font-style:italic; font-size:12px; text-align:center;}
+
   #entrada{display:flex; align-items:center; gap:8px; font-size:15px; min-height:24px;}
   #entrada .lbl{color:var(--muted); font-size:12px;}
-  #entrada .val{font-weight:800; font-size:20px; color:var(--sel);}
+  #entrada .val{font-weight:800; font-size:18px; color:var(--sel);}
 
   #acciones{display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
   .bacc{position:relative; min-height:66px; border-radius:10px; color:#fff; overflow:hidden;}
@@ -93,18 +97,32 @@
   .bacc.solo .lt{font-size:22px; font-weight:800; line-height:1;}
   .bacc.solo .sub{font-size:10px; font-weight:400; opacity:.92;}
   .bacc.dual .lt{position:absolute; top:5px; left:0; right:0; text-align:center; font-size:13px; font-weight:800; pointer-events:none; z-index:2; letter-spacing:.3px;}
-  .bacc .half{flex:1; border:none; color:#fff; font-weight:800; font-size:28px; display:flex; align-items:flex-end; justify-content:center; padding-bottom:8px;}
+  .bacc .half{flex:1; border:none; color:#fff; font-weight:800; font-size:30px; display:flex; align-items:center; justify-content:center; padding-top:10px;}
   .bacc .half.neg{background:rgba(0,0,0,.30);}
-  .bacc .half.pos{background:rgba(255,255,255,.22);}
+  .bacc .half.pos{background:rgba(255,255,255,.22); border-left:1px solid rgba(255,255,255,.25);}
   .bacc .half.neg:active{background:rgba(0,0,0,.52);}
   .bacc .half.pos:active{background:rgba(255,255,255,.42);}
-  .bacc .half.pos{border-left:1px solid rgba(255,255,255,.25);}
+  .bacc.armado{outline:3px solid var(--sel); outline-offset:-3px;}
   .bS{background:var(--verde);} .bA{background:var(--azul);} .bB{background:#00838f;}
   .bD{background:var(--naranja);} .bR{background:var(--morado);} .bE{background:var(--rojo);}
-  #utiles{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:8px;}
+
+  #utiles{display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
   #utiles button{padding:11px 4px; font-size:12px; background:var(--panel2); border:1px solid var(--line);}
   .bUndo{background:var(--amar)!important; color:#222!important;}
   .leyenda{font-size:11px; color:var(--muted); line-height:1.5;}
+
+  /* ---------- APAISADO (horizontal) ---------- */
+  @media (orientation:landscape){
+    #juego{max-width:none; flex-direction:row; align-items:stretch; gap:10px; min-height:calc(100vh - 16px);}
+    #colIzq,#colDer{display:flex; flex-direction:column; gap:8px; min-width:0;}
+    #colIzq{flex:1.05;} #colDer{flex:1;}
+    #colIzq>*,#colDer>*{order:0 !important;}
+    #boxTabla{flex:1; min-height:0; display:flex; flex-direction:column;}
+    #boxTabla #tablaWrap{flex:1; max-height:none; min-height:0; columns:2; column-gap:14px; column-fill:auto;}
+    .equipo .pts{font-size:38px;}
+    .bacc{min-height:58px;}
+  }
+
   .toast{position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:#000d; padding:11px 18px; border-radius:20px; font-size:13px; z-index:60; opacity:0; transition:opacity .2s; pointer-events:none; max-width:90vw; text-align:center;}
   .toast.show{opacity:1;}
   dialog{background:var(--panel); color:var(--txt); border:1px solid var(--line); border-radius:14px; padding:18px; max-width:90vw;}
@@ -165,43 +183,47 @@
 
 <!-- 3) JUEGO -->
 <div id="juego" class="oculto">
-  <div class="box" id="boxMarcador">
-    <div class="setinfo" id="setInfo">Set 1</div>
-    <div id="marcador">
-      <div class="equipo mi"><div class="nom" id="mNomA">Equipo A</div><div class="pts" id="mPtsA">0</div><div class="sets" id="mSetsA">Sets: 0</div></div>
-      <div id="saque" title="Tocar para cambiar quién saca">SAQUE<b id="mSaque">A</b></div>
-      <div class="equipo ri"><div class="nom" id="mNomR">Rival</div><div class="pts" id="mPtsR">0</div><div class="sets" id="mSetsR">Sets: 0</div></div>
+  <div id="colIzq">
+    <div class="box" id="boxMarcador">
+      <div class="setinfo" id="setInfo">Set 1</div>
+      <div id="marcador">
+        <div class="equipo mi"><div class="nom" id="mNomA">Equipo A</div><div class="pts" id="mPtsA">0</div><div class="sets" id="mSetsA">Sets: 0</div></div>
+        <div id="saque" title="Tocar para cambiar quién saca">SAQUE<b id="mSaque">A</b></div>
+        <div class="equipo ri"><div class="nom" id="mNomR">Rival</div><div class="pts" id="mPtsR">0</div><div class="sets" id="mSetsR">Sets: 0</div></div>
+      </div>
+    </div>
+    <div class="box" id="boxEntrada"><div id="entrada"><span class="lbl">Jugada:</span><span class="val" id="entSel">—</span></div></div>
+    <div class="box" id="boxRot">
+      <div class="tit">Rotación · 1º acción, 2º jugadora</div>
+      <div id="cancha"></div>
+    </div>
+    <div id="acciones">
+      <div class="bacc dual bS" data-t="S"><span class="lt">S · Saque</span><button class="half neg" data-a="S-">－</button><button class="half pos" data-a="S+">＋</button></div>
+      <div class="bacc dual bA" data-t="A"><span class="lt">A · Ataque</span><button class="half neg" data-a="A-">－</button><button class="half pos" data-a="A+">＋</button></div>
+      <div class="bacc dual bB" data-t="B"><span class="lt">B · Bloqueo</span><button class="half neg" data-a="B-">－</button><button class="half pos" data-a="B+">＋</button></div>
+      <button class="bacc solo bD" data-a="D"><span class="lt">D</span><span class="sub">Def. neg.</span></button>
+      <button class="bacc solo bR" data-a="R"><span class="lt">R</span><span class="sub">Rec. neg.</span></button>
+      <button class="bacc solo bE" data-a="E"><span class="lt">E</span><span class="sub">Error rival</span></button>
     </div>
   </div>
-  <div class="box">
-    <div class="tit">Rotación · toca una jugadora para seleccionarla</div>
-    <div id="cancha"></div>
-  </div>
-  <div class="box">
-    <div class="tit">Registro de jugadas</div>
-    <div id="tablaWrap"><table class="log"><thead><tr><th id="thA">Mis Pts</th><th>Jugada</th><th id="thR">Pts Rival</th></tr></thead><tbody id="tablaLog"></tbody></table></div>
-  </div>
-  <div class="box"><div id="entrada"><span class="lbl">Jugada:</span><span class="val" id="entSel">—</span></div></div>
-  <div id="acciones">
-    <div class="bacc dual bS"><span class="lt">S · Saque</span><button class="half neg" data-a="S-">－</button><button class="half pos" data-a="S+">＋</button></div>
-    <div class="bacc dual bA"><span class="lt">A · Ataque</span><button class="half neg" data-a="A-">－</button><button class="half pos" data-a="A+">＋</button></div>
-    <div class="bacc dual bB"><span class="lt">B · Bloqueo</span><button class="half neg" data-a="B-">－</button><button class="half pos" data-a="B+">＋</button></div>
-    <button class="bacc solo bD" data-a="D"><span class="lt">D</span><span class="sub">Def. neg.</span></button>
-    <button class="bacc solo bR" data-a="R"><span class="lt">R</span><span class="sub">Rec. neg.</span></button>
-    <button class="bacc solo bE" data-a="E"><span class="lt">E</span><span class="sub">Error rival</span></button>
-  </div>
-  <div id="utiles">
-    <button class="bUndo" id="btnUndo">↶ Deshacer</button>
-    <button id="btnCambio">⇄ Cambio</button>
-    <button id="btnLibero">🔄 Líbero</button>
-    <button id="btnStats">📊 Estadísticas</button>
-    <button id="btnExport">⬇ Exportar</button>
-  </div>
-  <div class="box leyenda">
-    <b>S/A/B:</b> mitad derecha ＋ = punto a tu favor · mitad izquierda － = error (punto rival).
-    <b>D/R</b> = punto rival · <b>E</b> = error del rival (punto tuyo).
-    El set se cierra solo a 25 (15 en el decisivo) con 2 de diferencia.
-    <button id="btnNuevoPartido" style="background:var(--rojo);padding:8px 10px;margin-top:8px;width:100%">⟲ Terminar / Nuevo partido</button>
+  <div id="colDer">
+    <div class="box" id="boxTabla">
+      <div class="tit">Registro · Mis pts · Jugada · Pts rival</div>
+      <div id="tablaWrap"><div id="tablaLog"></div></div>
+    </div>
+    <div id="utiles">
+      <button class="bUndo" id="btnUndo">↶ Deshacer</button>
+      <button id="btnCambio">⇄ Cambio</button>
+      <button id="btnLibero">🔄 Líbero</button>
+      <button id="btnStats">📊 Estadísticas</button>
+      <button id="btnExport">⬇ Exportar</button>
+    </div>
+    <div class="box leyenda" id="boxLeyenda">
+      <b>Cómo anotar:</b> toca la acción y luego la jugadora. El <b>Saque</b> se asigna solo a la de P1.
+      S/A/B: mitad derecha ＋ = punto tuyo · izquierda － = error (punto rival). D/R = punto rival · E = error rival (punto tuyo).
+      El set se cierra solo a 25 (15 en el decisivo) con 2 de diferencia.
+      <button id="btnNuevoPartido" style="background:var(--rojo);padding:8px 10px;margin-top:8px;width:100%">⟲ Terminar / Nuevo partido</button>
+    </div>
   </div>
 </div>
 
@@ -234,12 +256,11 @@ const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const LS_KEY="voleibol_partido_v1", LS_TEAMS="voleibol_equipos_v1";
 const FRENTE=[4,3,2], ZAGA=[5,6,1], ZAGA_POS=[1,5,6], FRONT_POS=[2,3,4];
-let S=null, sel=null, equipoOriginal=null;
+let S=null, sel=null, equipoOriginal=null, accionPendiente=null;
 
 const cargarEquipos = () => { try{ return JSON.parse(localStorage.getItem(LS_TEAMS))||{}; }catch(e){ return {}; } };
 const guardarEquipos = obj => localStorage.setItem(LS_TEAMS, JSON.stringify(obj));
 
-/* ----- Diálogos (reemplazan a confirm/alert que el navegador puede bloquear) ----- */
 function confirmar(msg){
   return new Promise(res=>{ $("#confMsg").textContent=msg; const d=$("#dlgConfirm");
     const fin=v=>{ d.close(); $("#confSi").onclick=$("#confNo").onclick=null; res(v); };
@@ -352,15 +373,14 @@ function iniciarPartido(){
     sacando, sacandoInicial:sacando,
     rotacion:rot, rotInicial:{...rot}, liberoEnCancha:false, numReemplazado:null, log:[], hist:[] };
   if(libero) S.nombres[libero.num]=libero.nom;
-  guardar(); irAJuego();
+  sel=null; accionPendiente=null; guardar(); irAJuego();
 }
-function reanudar(){ const d=localStorage.getItem(LS_KEY); if(!d){toast("No hay partido en curso");return;} S=JSON.parse(d); irAJuego(); }
+function reanudar(){ const d=localStorage.getItem(LS_KEY); if(!d){toast("No hay partido en curso");return;} S=JSON.parse(d); sel=null; accionPendiente=null; irAJuego(); }
 
 /* ----- NAVEGACIÓN ----- */
 function mostrar(id){ ["selEquipo","config","juego","stats"].forEach(p=>$("#"+p).classList.toggle("oculto", p!==id)); }
 function irAJuego(){
   $("#mNomA").textContent=S.miEquipo; $("#mNomR").textContent=S.rival;
-  $("#thA").textContent="Pts "+abreviar(S.miEquipo); $("#thR").textContent="Pts "+abreviar(S.rival);
   mostrar("juego"); render();
 }
 const abreviar = t => t.length>9 ? t.slice(0,9)+"…" : t;
@@ -383,18 +403,27 @@ function renderCancha(){
   });
   fila(FRENTE); const d=document.createElement("div"); d.className="reddiv"; c.appendChild(d); fila(ZAGA);
 }
-function seleccionar(pos,num){ sel=(sel&&sel.pos===pos)?null:{pos,num}; renderCancha(); renderEntrada(); }
-function renderEntrada(){ $("#entSel").textContent=sel?`Nº ${sel.num} (P${sel.pos})`:"—"; }
+function seleccionar(pos,num){
+  if(accionPendiente){ const a=accionPendiente; accionPendiente=null; marcarArmado(); registrar(a,num); return; }
+  sel=(sel&&sel.pos===pos)?null:{pos,num}; renderCancha(); renderEntrada();
+}
+function renderEntrada(){
+  if(accionPendiente) $("#entSel").textContent=`${accionPendiente}  →  toca la jugadora`;
+  else if(sel) $("#entSel").textContent=`Nº ${sel.num} (P${sel.pos})`;
+  else $("#entSel").textContent="—";
+}
+function marcarArmado(){ $$("#acciones .bacc").forEach(b=>b.classList.toggle("armado", accionPendiente && b.dataset.t===accionPendiente[0])); }
 function renderTabla(){
-  const tb=$("#tablaLog"); tb.innerHTML="";
+  const cont=$("#tablaLog"); cont.innerHTML="";
   S.log.forEach(e=>{
-    const tr=document.createElement("tr");
-    if(e.separador){ tr.className="sep"; tr.innerHTML=`<td colspan="3">${e.accion}</td>`; tb.appendChild(tr); return; }
+    const d=document.createElement("div");
+    if(e.separador){ d.className="lrow sep"; d.textContent=e.accion; cont.appendChild(d); return; }
+    d.className="lrow";
     const jug=e.sub?`⇄ entra ${e.entra} · sale ${e.sale}`:(e.jugadora!=null?e.accion+" "+e.jugadora:e.accion);
-    tr.innerHTML=`<td class="mi">${e.miPunto?e.puntosA:""}</td><td class="b">${jug}</td><td class="ri">${e.rivalPunto?e.puntosR:""}</td>`;
-    tb.appendChild(tr);
+    d.innerHTML=`<span class="mi">${e.miPunto?e.puntosA:""}</span><span class="jg">${jug}</span><span class="ri">${e.rivalPunto?e.puntosR:""}</span>`;
+    cont.appendChild(d);
   });
-  const w=$("#tablaWrap"); w.scrollTop=w.scrollHeight;
+  const w=$("#tablaWrap"); if(w){ w.scrollTop=w.scrollHeight; w.scrollLeft=w.scrollWidth; }
 }
 
 /* ----- LÓGICA DE JUEGO ----- */
@@ -402,19 +431,23 @@ function rotar(){ const r=S.rotacion,n={}; n[1]=r[2];n[6]=r[1];n[5]=r[6];n[4]=r[
 const PUNTO_MIO    = a => a==="E" || a.slice(-1)==="+";
 const PUNTO_RIVAL  = a => a==="D" || a==="R" || a.slice(-1)==="-";
 const NECESITA_NUM = a => a!=="E";
-function registrar(accion){
+function accionTocada(accion){
   if(S.terminado){ toast("El partido ya terminó (usa Deshacer si fue error)"); return; }
-  if(NECESITA_NUM(accion)&&!sel){ toast("Selecciona una jugadora en la rotación"); return; }
+  if(accionPendiente===accion){ accionPendiente=null; marcarArmado(); renderEntrada(); return; } // cancelar
+  if(accion==="E"){ accionPendiente=null; sel=null; marcarArmado(); registrar("E",null); return; }
+  if(accion[0]==="S"){ accionPendiente=null; sel=null; marcarArmado(); registrar(accion, S.rotacion[1]); return; } // saca P1
+  accionPendiente=accion; sel=null; marcarArmado(); renderCancha(); renderEntrada();
+}
+function registrar(accion,num){
+  if(S.terminado){ toast("El partido ya terminó (usa Deshacer si fue error)"); return; }
   snapshot();
   const mio=PUNTO_MIO(accion), rival=PUNTO_RIVAL(accion);
   if(mio) S.puntosA++; else if(rival) S.puntosR++;
-  if(mio){ if(!S.sacando){ rotar(); S.sacando=true; chequearLiberoFrontal(); } }
-  else if(rival){ if(S.sacando) S.sacando=false; }
-  S.log.push({set:S.set, accion, jugadora:NECESITA_NUM(accion)?sel.num:null,
+  if(mio){ if(!S.sacando){ rotar(); S.sacando=true; chequearLiberoFrontal(); } } else if(rival){ if(S.sacando) S.sacando=false; }
+  S.log.push({set:S.set, accion, jugadora:NECESITA_NUM(accion)?num:null,
     miPunto:mio, rivalPunto:rival, puntosA:S.puntosA, puntosR:S.puntosR, sacando:S.sacando, hora:new Date().toISOString()});
-  sel=null;
-  chequearFinSet();
-  guardar(); render();
+  sel=null; accionPendiente=null;
+  chequearFinSet(); guardar(); render();
 }
 function chequearLiberoFrontal(){
   if(!S.liberoEnCancha) return;
@@ -450,6 +483,7 @@ function bancaActual(){
   return S.jugadoras.filter(j=> !enCancha.has(String(j.num)) && (!S.libero||String(j.num)!==String(S.libero.num)));
 }
 function abrirCambio(){
+  accionPendiente=null; marcarArmado();
   if(!sel){ toast("Toca primero la jugadora que SALE"); return; }
   const banca=bancaActual();
   if(!banca.length){ toast("No hay jugadoras en banca"); return; }
@@ -468,6 +502,7 @@ function hacerCambio(entra){
   sel=null; $("#dlgCambio").close(); guardar(); render(); toast(`Entra ${entra}, sale ${sale}`);
 }
 function botonLibero(){
+  accionPendiente=null; marcarArmado();
   if(!S.libero){ toast("Este equipo no tiene líbero (ponle posición Líbero en la plantilla)"); return; }
   if(S.liberoEnCancha){
     snapshot();
@@ -495,7 +530,7 @@ function deshacer(){
   const h=JSON.parse(S.hist.pop());
   Object.assign(S,{puntosA:h.puntosA,puntosR:h.puntosR,setsA:h.setsA,setsR:h.setsR,set:h.set,terminado:h.terminado,
     sacando:h.sacando,rotacion:h.rotacion,liberoEnCancha:h.liberoEnCancha,numReemplazado:h.numReemplazado});
-  S.log.length=h.logLen; sel=null; guardar(); render(); toast("Deshecho");
+  S.log.length=h.logLen; sel=null; accionPendiente=null; marcarArmado(); guardar(); render(); toast("Deshecho");
 }
 
 /* ----- ESTADÍSTICAS ----- */
@@ -575,8 +610,8 @@ $("#btnNuevoEquipo").onclick=nuevoEquipo;
 $("#btnVolverSel").onclick=()=>{ renderSelector(); mostrar("selEquipo"); };
 $("#btnIniciar").onclick=iniciarPartido;
 $("#btnReanudar").onclick=reanudar;
-$$("#acciones .half").forEach(b=>b.onclick=()=>registrar(b.dataset.a));
-$$("#acciones .solo").forEach(b=>b.onclick=()=>registrar(b.dataset.a));
+$$("#acciones .half").forEach(b=>b.onclick=()=>accionTocada(b.dataset.a));
+$$("#acciones .solo").forEach(b=>b.onclick=()=>accionTocada(b.dataset.a));
 $("#btnUndo").onclick=deshacer; $("#btnCambio").onclick=abrirCambio; $("#btnLibero").onclick=botonLibero;
 $("#btnStats").onclick=mostrarStats; $("#btnExport").onclick=()=>$("#dlgExport").showModal();
 $("#liberoCancel").onclick=()=>$("#dlgLibero").close();

@@ -50,13 +50,18 @@ Puntos a favor (S+A+B), Defensa neg. (D), Recepción neg. (R) y **% de eficacia*
 = positivas/(positivas+negativas). Incluye fila de totales y se puede exportar a CSV.
 
 ## Cómo se registra una jugada
-1. Toca a la jugadora en el cuadro de **Rotación** (se resalta en amarillo).
-2. Toca el botón de acción:
-   - **S** Saque · **A** Ataque · **B** Bloqueo → cada uno con **＋ (arriba)** y **－ (abajo)** en su
-     orilla derecha: el cuerpo del botón o el **＋** = jugada positiva (punto tuyo); el **－** = jugada
-     negativa (error → punto del rival).
+1. Toca **primero la acción**, luego la **jugadora** en la rotación:
+   - **S** Saque · **A** Ataque · **B** Bloqueo → cada botón está partido en dos mitades:
+     **mitad derecha ＋** = jugada positiva (punto tuyo); **mitad izquierda －** = jugada negativa
+     (error → punto del rival).
    - **D** Defensa negativa (saque) · **R** Recepción negativa → **punto para el rival**.
-   - **E** Error del rival → **punto tuyo** (no necesita número).
+   - **E** Error del rival → **punto tuyo** (no necesita jugadora).
+2. El **Saque (S)** asigna automáticamente a la jugadora en **posición 1** (la que saca).
+
+### Orientación apaisada (tablet/teléfono horizontal)
+La pantalla se divide en dos: a la **izquierda** marcador, línea de jugada, rotación y botones de
+acción; a la **derecha** la tabla de jugadas (a 2 columnas, con scroll) y debajo los botones
+auxiliares (deshacer, cambio, líbero, etc.).
 
 La **rotación es automática**: tu equipo rota cuando **recupera el saque** (side-out).
 El indicador **SAQUE** se puede tocar para corregir quién saca.
