@@ -33,6 +33,8 @@ abrir esa dirección en el móvil. Luego:
    **nombre del equipo y sus jugadoras (número + nombre)**. Las posiciones NO se guardan: se arman
    en cada partido.
 3. Al elegir un equipo entra a **Configura tu equipo**: ves la plantilla con un **✓** por jugadora.
+   La app **recuerda la última alineación** con la que jugaste (posiciones, líbero, banca, quién
+   saca), así que normalmente solo ajustas lo que cambió.
    - Marca quién juega y ponle **posición** (P1–P6 titular · Banca suplente · Líbero).
    - **Añadir jugadora** o **editar número/nombre** → se guarda solo en el JSON.
    - **Eliminar una jugadora** del equipo: botón **🗑** en su fila (pide confirmación).
