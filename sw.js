@@ -1,5 +1,5 @@
 // Service worker — caché para uso sin conexión
-const CACHE = "voleibol-v6";
+const CACHE = "voleibol-v7";
 const ARCHIVOS = [
   "./",
   "./index.html",
@@ -19,12 +19,14 @@ self.addEventListener("activate", e => {
   );
 });
 
-// Network-first para el HTML (recibe actualizaciones), cache-first para el resto
+// Network-first para el HTML (saltando la caché HTTP del navegador para recibir
+// siempre la última versión); cache-first para el resto.
 self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.mode === "navigate" || req.url.endsWith(".html")) {
     e.respondWith(
-      fetch(req).then(r => { caches.open(CACHE).then(c => c.put(req, r.clone())); return r; })
+      fetch(req.url, { cache: "no-store" })
+        .then(r => { const c = r.clone(); caches.open(CACHE).then(ca => ca.put("./index.html", c)); return r; })
         .catch(() => caches.match(req).then(r => r || caches.match("./index.html")))
     );
   } else {

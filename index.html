@@ -594,7 +594,12 @@ $("#btnNuevoPartido").onclick=async()=>{ if(await confirmar("¿Terminar este par
   renderSelector();
   if(!hayEquipos && !hayPartido) nuevoEquipo(); else mostrar("selEquipo");
 })();
-if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+if("serviceWorker" in navigator){
+  const teniaControl=!!navigator.serviceWorker.controller;
+  let recargando=false;
+  navigator.serviceWorker.addEventListener("controllerchange", ()=>{ if(recargando) return; recargando=true; if(teniaControl) location.reload(); });
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
 </script>
 </body>
 </html>
