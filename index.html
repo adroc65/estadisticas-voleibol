@@ -78,9 +78,11 @@
   .pos.lib .jnum{color:var(--amar);}
   .reddiv{grid-column:1/4; height:0; border-top:2px dashed #4a6a8a; margin:1px 0;}
 
-  #tablaWrap{max-height:34vh; overflow:auto;}
-  #tablaLog{font-size:14px;}
-  .lrow{display:grid; grid-template-columns:2.4em 1fr 2.4em; gap:4px; align-items:center; padding:3px 6px; border-bottom:1px solid #1c3149; break-inside:avoid;}
+  #tablaWrap{display:flex; max-height:34vh; font-size:14px;}
+  .logcol{flex:1; min-width:0; min-height:0;}
+  #logCol1{overflow-y:auto;}
+  #logCol2{display:none; overflow-y:auto; padding-left:6px;}
+  .lrow{display:grid; grid-template-columns:2.4em 1fr 2.4em; gap:4px; align-items:center; padding:3px 6px; border-bottom:1px solid #1c3149;}
   .lrow .mi{color:var(--azulc); font-weight:700; text-align:center;}
   .lrow .jg{font-weight:600;}
   .lrow .ri{color:#ff8a80; font-weight:700; text-align:center;}
@@ -106,25 +108,34 @@
   .bS{background:var(--verde);} .bA{background:var(--azul);} .bB{background:#00838f;}
   .bD{background:var(--naranja);} .bR{background:var(--morado);} .bE{background:var(--rojo);}
 
-  #utiles{display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
-  #utiles button{padding:11px 4px; font-size:12px; background:var(--panel2); border:1px solid var(--line);}
+  #utiles{display:grid; grid-template-columns:repeat(5,1fr); gap:6px;}
+  #utiles button{padding:9px 2px; font-size:19px; line-height:1; background:var(--panel2); border:1px solid var(--line);}
   .bUndo{background:var(--amar)!important; color:#222!important;}
+  .pos.saca{border-color:#00c853;}
+  .pos .saca-badge{position:absolute; top:3px; right:5px; font-size:12px;}
+  .pos.sacaAhora{background:#16432a; border-color:#00e676; box-shadow:0 0 0 2px #00e676 inset;}
   .leyenda{font-size:11px; color:var(--muted); line-height:1.5;}
 
   /* ---------- APAISADO (horizontal) ---------- */
   @media (orientation:landscape){
-    #juego{max-width:none; flex-direction:row; align-items:stretch; gap:10px; min-height:calc(100vh - 16px);}
-    #colIzq,#colDer{display:flex; flex-direction:column; gap:8px; min-width:0;}
-    #colIzq{flex:1.05;} #colDer{flex:1;}
+    #juego{max-width:none; flex-direction:row; align-items:stretch; gap:10px; height:calc(100vh - 16px);}
+    #colIzq,#colDer{display:flex; flex-direction:column; gap:8px; min-width:0; min-height:0;}
+    #colIzq{flex:1.05; overflow-y:auto;}
+    #colDer{flex:1; overflow:hidden;}
     #colIzq>*,#colDer>*{order:0 !important;}
     #boxTabla{flex:1; min-height:0; display:flex; flex-direction:column;}
-    #boxTabla #tablaWrap{flex:1; max-height:none; min-height:0; columns:2; column-gap:14px; column-fill:auto;}
+    #boxTabla #tablaWrap{flex:1; max-height:none; min-height:0;}
+    #logCol1{overflow:hidden; border-right:1px solid var(--line); padding-right:6px;}
+    #logCol2{display:block;}
     .equipo .pts{font-size:38px;}
     .bacc{min-height:58px;}
+    #boxLeyenda{font-size:10px;}
   }
 
   .toast{position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:#000d; padding:11px 18px; border-radius:20px; font-size:13px; z-index:60; opacity:0; transition:opacity .2s; pointer-events:none; max-width:90vw; text-align:center;}
   .toast.show{opacity:1;}
+  #saqueBanner{position:fixed; left:50%; top:40%; transform:translate(-50%,-50%) scale(.9); background:#0a7d33; color:#fff; padding:18px 26px; border-radius:16px; font-size:22px; font-weight:800; z-index:70; opacity:0; pointer-events:none; transition:opacity .18s, transform .18s; box-shadow:0 10px 34px #000b; text-align:center;}
+  #saqueBanner.show{opacity:1; transform:translate(-50%,-50%) scale(1);}
   dialog{background:var(--panel); color:var(--txt); border:1px solid var(--line); border-radius:14px; padding:18px; max-width:90vw;}
   dialog::backdrop{background:#0009;}
   dialog .fila{margin-top:12px;}
@@ -205,18 +216,18 @@
       <button class="bacc solo bR" data-a="R"><span class="lt">R</span><span class="sub">Rec. neg.</span></button>
       <button class="bacc solo bE" data-a="E"><span class="lt">E</span><span class="sub">Error rival</span></button>
     </div>
+    <div id="utiles">
+      <button class="bUndo" id="btnUndo" title="Deshacer">↶</button>
+      <button id="btnCambio" title="Cambio / sustitución">⇄</button>
+      <button id="btnLibero" title="Líbero">🔄</button>
+      <button id="btnStats" title="Estadísticas">📊</button>
+      <button id="btnExport" title="Exportar">⬇</button>
+    </div>
   </div>
   <div id="colDer">
     <div class="box" id="boxTabla">
       <div class="tit">Registro · Mis pts · Jugada · Pts rival</div>
-      <div id="tablaWrap"><div id="tablaLog"></div></div>
-    </div>
-    <div id="utiles">
-      <button class="bUndo" id="btnUndo">↶ Deshacer</button>
-      <button id="btnCambio">⇄ Cambio</button>
-      <button id="btnLibero">🔄 Líbero</button>
-      <button id="btnStats">📊 Estadísticas</button>
-      <button id="btnExport">⬇ Exportar</button>
+      <div id="tablaWrap"><div id="logCol1" class="logcol"></div><div id="logCol2" class="logcol"></div></div>
     </div>
     <div class="box leyenda" id="boxLeyenda">
       <b>Cómo anotar:</b> toca la acción y luego la jugadora. El <b>Saque</b> se asigna solo a la de P1.
@@ -244,6 +255,7 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<div id="saqueBanner"></div>
 <dialog id="dlgConfirm"><p id="confMsg" style="margin:0 0 4px; font-size:15px"></p><div class="fila"><button class="btnAdd" id="confNo" style="background:#3a4f6a">No</button><button class="btnAdd" id="confSi" style="background:var(--rojo)">Sí</button></div></dialog>
 <dialog id="dlgAviso"><p id="avisoMsg" style="white-space:pre-line; margin:0; font-size:15px"></p><div class="fila"><button class="btnAdd" id="avisoOk">Entendido</button></div></dialog>
 <dialog id="dlgLibero"><h2 style="margin-bottom:4px">Entra el líbero</h2><p class="sub" id="liberoSub" style="margin:0 0 8px">¿Por quién entra? (jugadoras de zaga)</p><div id="listaLibero"></div><div class="fila"><button class="btnAdd" style="background:#3a4f6a" id="liberoCancel">Cancelar</button></div></dialog>
@@ -381,7 +393,7 @@ function reanudar(){ const d=localStorage.getItem(LS_KEY); if(!d){toast("No hay 
 function mostrar(id){ ["selEquipo","config","juego","stats"].forEach(p=>$("#"+p).classList.toggle("oculto", p!==id)); }
 function irAJuego(){
   $("#mNomA").textContent=S.miEquipo; $("#mNomR").textContent=S.rival;
-  mostrar("juego"); render();
+  mostrar("juego"); render(); anunciarSaque();
 }
 const abreviar = t => t.length>9 ? t.slice(0,9)+"…" : t;
 
@@ -396,9 +408,10 @@ function render(){
 function renderCancha(){
   const c=$("#cancha"); c.innerHTML="";
   const fila=lista=>lista.forEach(p=>{
-    const num=S.rotacion[p], esLib=S.libero&&num===S.libero.num;
-    const div=document.createElement("div"); div.className="pos"+(sel&&sel.pos===p?" sel":"")+(esLib?" lib":"");
-    div.innerHTML=`<span class="znum">P${p}</span><span class="jnum">${num??"—"}</span><span class="jnom">${(S.nombres[num]||"").slice(0,10)}</span>`;
+    const num=S.rotacion[p], esLib=S.libero&&num===S.libero.num, esSaque=(p===1);
+    const div=document.createElement("div");
+    div.className="pos"+(sel&&sel.pos===p?" sel":"")+(esLib?" lib":"")+(esSaque?" saca":"")+(esSaque&&S.sacando?" sacaAhora":"");
+    div.innerHTML=`<span class="znum">P${p}</span>${esSaque?'<span class="saca-badge">🏐</span>':''}<span class="jnum">${num??"—"}</span><span class="jnom">${(S.nombres[num]||"").slice(0,10)}</span>`;
     div.onclick=()=>seleccionar(p,num); c.appendChild(div);
   });
   fila(FRENTE); const d=document.createElement("div"); d.className="reddiv"; c.appendChild(d); fila(ZAGA);
@@ -413,17 +426,26 @@ function renderEntrada(){
   else $("#entSel").textContent="—";
 }
 function marcarArmado(){ $$("#acciones .bacc").forEach(b=>b.classList.toggle("armado", accionPendiente && b.dataset.t===accionPendiente[0])); }
+function crearFilaLog(e){
+  const d=document.createElement("div");
+  if(e.separador){ d.className="lrow sep"; d.textContent=e.accion; return d; }
+  d.className="lrow";
+  const jug=e.sub?`⇄ entra ${e.entra} · sale ${e.sale}`:(e.jugadora!=null?e.accion+" "+e.jugadora:e.accion);
+  d.innerHTML=`<span class="mi">${e.miPunto?e.puntosA:""}</span><span class="jg">${jug}</span><span class="ri">${e.rivalPunto?e.puntosR:""}</span>`;
+  return d;
+}
 function renderTabla(){
-  const cont=$("#tablaLog"); cont.innerHTML="";
-  S.log.forEach(e=>{
-    const d=document.createElement("div");
-    if(e.separador){ d.className="lrow sep"; d.textContent=e.accion; cont.appendChild(d); return; }
-    d.className="lrow";
-    const jug=e.sub?`⇄ entra ${e.entra} · sale ${e.sale}`:(e.jugadora!=null?e.accion+" "+e.jugadora:e.accion);
-    d.innerHTML=`<span class="mi">${e.miPunto?e.puntosA:""}</span><span class="jg">${jug}</span><span class="ri">${e.rivalPunto?e.puntosR:""}</span>`;
-    cont.appendChild(d);
-  });
-  const w=$("#tablaWrap"); if(w){ w.scrollTop=w.scrollHeight; w.scrollLeft=w.scrollWidth; }
+  const col1=$("#logCol1"), col2=$("#logCol2"); col1.innerHTML=""; col2.innerHTML="";
+  const landscape=window.matchMedia("(orientation:landscape)").matches;
+  const filas=S.log.map(crearFilaLog);
+  if(!landscape){ filas.forEach(f=>col1.appendChild(f)); col1.scrollTop=col1.scrollHeight; return; }
+  // apaisado: llenar col1 hasta desbordar; el resto a col2 (que hace scroll)
+  let lleno=false;
+  for(const f of filas){
+    if(!lleno){ col1.appendChild(f); if(col1.scrollHeight>col1.clientHeight+1){ col1.removeChild(f); lleno=true; col2.appendChild(f); } }
+    else col2.appendChild(f);
+  }
+  col2.scrollTop=col2.scrollHeight;
 }
 
 /* ----- LÓGICA DE JUEGO ----- */
@@ -443,7 +465,7 @@ function registrar(accion,num){
   snapshot();
   const mio=PUNTO_MIO(accion), rival=PUNTO_RIVAL(accion);
   if(mio) S.puntosA++; else if(rival) S.puntosR++;
-  if(mio){ if(!S.sacando){ rotar(); S.sacando=true; chequearLiberoFrontal(); } } else if(rival){ if(S.sacando) S.sacando=false; }
+  if(mio){ if(!S.sacando){ rotar(); S.sacando=true; chequearLiberoFrontal(); anunciarSaque(); } } else if(rival){ if(S.sacando) S.sacando=false; }
   S.log.push({set:S.set, accion, jugadora:NECESITA_NUM(accion)?num:null,
     miPunto:mio, rivalPunto:rival, puntosA:S.puntosA, puntosR:S.puntosR, sacando:S.sacando, hora:new Date().toISOString()});
   sel=null; accionPendiente=null;
@@ -477,6 +499,7 @@ function finalizarSet(){
   S.liberoEnCancha=false; S.numReemplazado=null; S.sacando=S.sacandoInicial;
   S.log.push({separador:true, accion:`— Set ${setNum} ${marcador} para ${ganador} · empieza Set ${S.set} —`, hora:new Date().toISOString()});
   aviso(`Set ${setNum} para ${ganador}  (${marcador}).\nEmpieza el Set ${S.set}.`);
+  anunciarSaque();
 }
 function bancaActual(){
   const enCancha=new Set(Object.values(S.rotacion).map(String));
@@ -599,6 +622,9 @@ async function compartir(){
 function guardar(){ localStorage.setItem(LS_KEY, JSON.stringify(S)); }
 let toastT;
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),2200); }
+let bannerT;
+function banner(msg){ const b=$("#saqueBanner"); b.textContent=msg; b.classList.add("show"); clearTimeout(bannerT); bannerT=setTimeout(()=>b.classList.remove("show"),2400); }
+function anunciarSaque(){ if(S && S.sacando) banner(`🏐 Saca la Nº ${S.rotacion[1]}`); }
 
 /* ----- EVENTOS ----- */
 $$("#cfgSaque button").forEach(b=>b.onclick=()=>setSaque(b.dataset.s));
@@ -629,6 +655,8 @@ $("#btnNuevoPartido").onclick=async()=>{ if(await confirmar("¿Terminar este par
   renderSelector();
   if(!hayEquipos && !hayPartido) nuevoEquipo(); else mostrar("selEquipo");
 })();
+window.matchMedia("(orientation:landscape)").addEventListener("change", ()=>{ if(S && !$("#juego").classList.contains("oculto")) renderTabla(); });
+window.addEventListener("resize", ()=>{ if(S && !$("#juego").classList.contains("oculto")) renderTabla(); });
 if("serviceWorker" in navigator){
   const teniaControl=!!navigator.serviceWorker.controller;
   let recargando=false;
