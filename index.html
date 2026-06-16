@@ -87,13 +87,18 @@
   #entrada .val{font-weight:800; font-size:20px; color:var(--sel);}
 
   #acciones{display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
-  .bacc{position:relative; min-height:58px; border-radius:10px; color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center;}
-  .bacc.split{padding-right:30px;}
-  .bacc .lt{font-size:22px; font-weight:800; line-height:1;}
-  .bacc .sub{font-size:10px; font-weight:400; opacity:.92;}
-  .bacc .sg{position:absolute; right:0; width:30px; height:50%; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800; color:#fff;}
-  .bacc .sg.pos{top:0; background:rgba(255,255,255,.22); border-top-right-radius:10px; border-bottom:1px solid rgba(0,0,0,.25);}
-  .bacc .sg.neg{bottom:0; background:rgba(0,0,0,.34); border-bottom-right-radius:10px;}
+  .bacc{position:relative; min-height:66px; border-radius:10px; color:#fff; overflow:hidden;}
+  .bacc.dual{display:flex;}
+  .bacc.solo{display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  .bacc.solo .lt{font-size:22px; font-weight:800; line-height:1;}
+  .bacc.solo .sub{font-size:10px; font-weight:400; opacity:.92;}
+  .bacc.dual .lt{position:absolute; top:5px; left:0; right:0; text-align:center; font-size:13px; font-weight:800; pointer-events:none; z-index:2; letter-spacing:.3px;}
+  .bacc .half{flex:1; border:none; color:#fff; font-weight:800; font-size:28px; display:flex; align-items:flex-end; justify-content:center; padding-bottom:8px;}
+  .bacc .half.neg{background:rgba(0,0,0,.30);}
+  .bacc .half.pos{background:rgba(255,255,255,.22);}
+  .bacc .half.neg:active{background:rgba(0,0,0,.52);}
+  .bacc .half.pos:active{background:rgba(255,255,255,.42);}
+  .bacc .half.pos{border-left:1px solid rgba(255,255,255,.25);}
   .bS{background:var(--verde);} .bA{background:var(--azul);} .bB{background:#00838f;}
   .bD{background:var(--naranja);} .bR{background:var(--morado);} .bE{background:var(--rojo);}
   #utiles{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:8px;}
@@ -178,9 +183,9 @@
   </div>
   <div class="box"><div id="entrada"><span class="lbl">Jugada:</span><span class="val" id="entSel">—</span></div></div>
   <div id="acciones">
-    <div class="bacc split bS" data-t="S"><span class="lt">S</span><span class="sub">Saque</span><div class="sg pos" data-a="S+">＋</div><div class="sg neg" data-a="S-">－</div></div>
-    <div class="bacc split bA" data-t="A"><span class="lt">A</span><span class="sub">Ataque</span><div class="sg pos" data-a="A+">＋</div><div class="sg neg" data-a="A-">－</div></div>
-    <div class="bacc split bB" data-t="B"><span class="lt">B</span><span class="sub">Bloqueo</span><div class="sg pos" data-a="B+">＋</div><div class="sg neg" data-a="B-">－</div></div>
+    <div class="bacc dual bS"><span class="lt">S · Saque</span><button class="half neg" data-a="S-">－</button><button class="half pos" data-a="S+">＋</button></div>
+    <div class="bacc dual bA"><span class="lt">A · Ataque</span><button class="half neg" data-a="A-">－</button><button class="half pos" data-a="A+">＋</button></div>
+    <div class="bacc dual bB"><span class="lt">B · Bloqueo</span><button class="half neg" data-a="B-">－</button><button class="half pos" data-a="B+">＋</button></div>
     <button class="bacc solo bD" data-a="D"><span class="lt">D</span><span class="sub">Def. neg.</span></button>
     <button class="bacc solo bR" data-a="R"><span class="lt">R</span><span class="sub">Rec. neg.</span></button>
     <button class="bacc solo bE" data-a="E"><span class="lt">E</span><span class="sub">Error rival</span></button>
@@ -193,7 +198,7 @@
     <button id="btnExport">⬇ Exportar</button>
   </div>
   <div class="box leyenda">
-    <b>S/A/B:</b> toca el cuerpo (o ＋) = punto a tu favor · toca － = error (punto rival).
+    <b>S/A/B:</b> mitad derecha ＋ = punto a tu favor · mitad izquierda － = error (punto rival).
     <b>D/R</b> = punto rival · <b>E</b> = error del rival (punto tuyo).
     El set se cierra solo a 25 (15 en el decisivo) con 2 de diferencia.
     <button id="btnNuevoPartido" style="background:var(--rojo);padding:8px 10px;margin-top:8px;width:100%">⟲ Terminar / Nuevo partido</button>
@@ -570,7 +575,7 @@ $("#btnNuevoEquipo").onclick=nuevoEquipo;
 $("#btnVolverSel").onclick=()=>{ renderSelector(); mostrar("selEquipo"); };
 $("#btnIniciar").onclick=iniciarPartido;
 $("#btnReanudar").onclick=reanudar;
-$$("#acciones .bacc[data-t]").forEach(div=>div.addEventListener("click", e=>{ const sg=e.target.closest(".sg"); registrar(sg?sg.dataset.a:div.dataset.t+"+"); }));
+$$("#acciones .half").forEach(b=>b.onclick=()=>registrar(b.dataset.a));
 $$("#acciones .solo").forEach(b=>b.onclick=()=>registrar(b.dataset.a));
 $("#btnUndo").onclick=deshacer; $("#btnCambio").onclick=abrirCambio; $("#btnLibero").onclick=botonLibero;
 $("#btnStats").onclick=mostrarStats; $("#btnExport").onclick=()=>$("#dlgExport").showModal();
