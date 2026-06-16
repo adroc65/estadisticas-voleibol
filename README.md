@@ -52,17 +52,23 @@ Puntos a favor (S+A+B), Defensa neg. (D), Recepción neg. (R) y **% de eficacia*
 ## Cómo se registra una jugada
 1. Toca a la jugadora en el cuadro de **Rotación** (se resalta en amarillo).
 2. Toca el botón de acción:
-   - **S** Saque positivo · **A** Ataque positivo · **B** Bloqueo positivo · **E** Error del rival → **punto para tu equipo**.
+   - **S** Saque · **A** Ataque · **B** Bloqueo → cada uno con **＋ (arriba)** y **－ (abajo)** en su
+     orilla derecha: el cuerpo del botón o el **＋** = jugada positiva (punto tuyo); el **－** = jugada
+     negativa (error → punto del rival).
    - **D** Defensa negativa (saque) · **R** Recepción negativa → **punto para el rival**.
-   - **E** no necesita número (es error del rival).
-   - **＋ / －** suman un punto manual a tu equipo o al rival (para jugadas que no encajan).
+   - **E** Error del rival → **punto tuyo** (no necesita número).
 
 La **rotación es automática**: tu equipo rota cuando **recupera el saque** (side-out).
 El indicador **SAQUE** se puede tocar para corregir quién saca.
 
-**Líbero:** selecciona una posición de zaga (P1, P5 o P6) y pulsa **🔄 Líbero** para que entre o salga.
+**Sets:** eliges **3 o 5 sets** en la configuración. El set se **cierra solo** a 25 (15 en el set
+decisivo) con 2 de diferencia, y el partido termina al ganar 2 (de 3) o 3 (de 5) sets.
 
-**Otros botones:** ↶ Deshacer (corrige el último registro), ＋ Nuevo set, ⬇ Exportar (JSON / CSV / Compartir).
+**Líbero (🔄):** al pulsarlo eliges **por qué jugadora de zaga entra**. Si la rotación lo lleva a
+**zona delantera (P4)**, sale un **aviso** y la app lo saca solo, devolviendo a la jugadora original.
+Estando en cancha, también se puede cambiar con **⇄ Cambio**.
+
+**Otros botones:** ↶ Deshacer · ⇄ Cambio · 📊 Estadísticas · ⬇ Exportar (JSON / CSV / Compartir).
 
 ## Datos
 - El partido se guarda solo en el dispositivo (`localStorage`) y se puede **reanudar**.
@@ -70,7 +76,6 @@ El indicador **SAQUE** se puede tocar para corregir quién saca.
 - **Exportar CSV:** la tabla tal como se ve (columna en blanco cuando el marcador no cambia).
 
 ## Pendiente / ideas para pulir
-- Pantalla de estadísticas agregadas por jugadora (totales de S/A/B/D/R, % de eficacia).
-- Líbero automático (entrada/salida según rotación).
-- Fin de set automático (25 / 15 con ventaja de 2).
+- Filtro de estadísticas por set.
 - Íconos PNG con mejor diseño.
+- Reentrada automática del líbero cuando la jugadora central vuelve a zaga.

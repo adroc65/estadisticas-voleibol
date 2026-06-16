@@ -1,5 +1,5 @@
 // Service worker — caché para uso sin conexión
-const CACHE = "voleibol-v4";
+const CACHE = "voleibol-v5";
 const ARCHIVOS = [
   "./",
   "./index.html",
