@@ -311,7 +311,8 @@ const FRENTE=[4,3,2], ZAGA=[5,6,1], ZAGA_POS=[1,5,6], FRONT_POS=[2,3,4];
 const ROLES={COL:"Colocadora",PUN:"Punta",LIB:"Líbero",OPU:"Opuesta",DEF:"Defensa",CEN:"Central","?":"Sin definir"};
 function opcionesRol(r="?"){ return Object.entries(ROLES).map(([k,v])=>`<option value="${k}" ${r===k?"selected":""}>${k} · ${v}</option>`).join(""); }
 let S=null, sel=null, accionPendiente=null;
-let editEquipoOriginal=null, cfgEquipoNombre=null, cfgAsignacion={}, cfgPickerSlot=null;
+let editEquipoOriginal=null, cfgEquipoNombre=null, cfgAsignacion={}, cfgPickerSlot=null, cfgModoSet=false;
+let currentAvisoCallback=null;
 
 const cargarEquipos = () => { try{ return JSON.parse(localStorage.getItem(LS_TEAMS))||{}; }catch(e){ return {}; } };
 const guardarEquipos = obj => localStorage.setItem(LS_TEAMS, JSON.stringify(obj));
@@ -322,9 +323,12 @@ function confirmar(msg){
     $("#confSi").onclick=()=>fin(true); $("#confNo").onclick=()=>fin(false); d.showModal(); });
 }
 let avisoCola=[];
-function aviso(msg){ avisoCola.push(msg); if(!$("#dlgAviso").open) sigAviso(); }
-function sigAviso(){ if(!avisoCola.length) return; $("#avisoMsg").textContent=avisoCola.shift(); $("#dlgAviso").showModal(); }
-$("#avisoOk").onclick=()=>{ $("#dlgAviso").close(); setTimeout(sigAviso,50); };
+function aviso(item){ avisoCola.push(item); if(!$("#dlgAviso").open) sigAviso(); }
+function sigAviso(){ if(!avisoCola.length) return; const item=avisoCola.shift();
+  const msg=typeof item==="string"?item:item.msg; currentAvisoCallback=typeof item==="object"&&item.cb?item.cb:null;
+  $("#avisoMsg").textContent=msg; $("#dlgAviso").showModal(); }
+$("#avisoOk").onclick=()=>{ $("#dlgAviso").close(); const cb=currentAvisoCallback; currentAvisoCallback=null;
+  setTimeout(()=>{ sigAviso(); if(!avisoCola.length&&cb) cb(); },50); };
 
 /* ----- 1) SELECTOR ----- */
 function renderSelector(){
@@ -462,7 +466,33 @@ function abrirPicker(slot){
 }
 const setSaque=s=>$$("#cfgSaque button").forEach(b=>b.classList.toggle("on",b.dataset.s===s));
 const setSets =n=>$$("#cfgSets button").forEach(b=>b.classList.toggle("on",b.dataset.n===String(n)));
+function abrirConfigNuevoSet(){
+  renderCfgCancha();
+  $("#cfgTitulo").textContent=`Alineación — Set ${S.set}`;
+  $("#btnIniciar").textContent=`▶ Iniciar Set ${S.set}`;
+  // Ocultar campos irrelevantes en modo set
+  $("#cfgRival").closest(".card").style.display="none";
+  $$("#config .card").slice(-1)[0].style.display="none"; // card de formato/saque
+  $("#btnVolverSel").style.display="none";
+  mostrar("config");
+}
+function cerrarModoSet(){
+  cfgModoSet=false;
+  $("#cfgRival").closest(".card").style.display="";
+  $$("#config .card").slice(-1)[0].style.display="";
+  $("#btnVolverSel").style.display="";
+  $("#btnIniciar").textContent="▶ Iniciar partido";
+}
 function iniciarPartido(){
+  if(cfgModoSet){
+    for(let p=1;p<=6;p++){ if(!cfgAsignacion[p]){ toast(`Falta asignar P${p}`); return; } }
+    const rot={}; for(let p=1;p<=6;p++) rot[p]=cfgAsignacion[p];
+    const libNum=cfgAsignacion["L"];
+    const libJug=libNum?S.jugadoras.find(j=>String(j.num)===String(libNum)):null;
+    S.rotacion={...rot}; S.rotInicial={...rot}; S.libero=libJug||null;
+    cerrarModoSet(); guardar(); irAJuego(); anunciarSaque();
+    return;
+  }
   const eq=cargarEquipos()[cfgEquipoNombre]; if(!eq) return;
   for(let p=1;p<=6;p++){ if(!cfgAsignacion[p]){ toast(`Falta asignar la posición P${p}`); return; } }
   const nombre=cfgEquipoNombre;
@@ -620,11 +650,17 @@ function finalizarSet(){
     setTimeout(()=>{ exportJSON(); setTimeout(exportCSV, 700); }, 600);
     return;
   }
+  // Guardar rotación real del set que terminó (sin el líbero si estaba en cancha)
+  const rotAnterior={...S.rotacion};
+  if(S.liberoEnCancha && S.numReemplazado!=null){
+    for(const p in rotAnterior){ if(String(rotAnterior[p])===String(S.libero.num)){ rotAnterior[p]=S.numReemplazado; break; } }
+  }
+  const libAnterior=S.libero?S.libero.num:null;
   S.set++; S.puntosA=0; S.puntosR=0; S.rotacion={...S.rotInicial};
   S.liberoEnCancha=false; S.numReemplazado=null; S.sacando=S.sacandoInicial;
   S.log.push({separador:true, accion:`— Set ${setNum} ${marcador} para ${ganador} · empieza Set ${S.set} —`, hora:new Date().toISOString()});
-  aviso(`Set ${setNum} para ${ganador}  (${marcador}).\nEmpieza el Set ${S.set}.`);
-  anunciarSaque();
+  cfgModoSet=true; cfgEquipoNombre=S.miEquipo; cfgAsignacion={...rotAnterior, L:libAnterior};
+  aviso({msg:`Set ${setNum} para ${ganador}  (${marcador}).\nEmpieza el Set ${S.set} · Confirma o ajusta la alineación.`, cb:abrirConfigNuevoSet});
 }
 function bancaActual(){
   const enCancha=new Set(Object.values(S.rotacion).map(String));
