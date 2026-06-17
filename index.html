@@ -103,6 +103,7 @@
   .lrow.cab span{color:var(--muted); font-size:10px; font-weight:700; text-align:center; text-transform:uppercase;}
   .lrow.cab span:nth-child(3){text-align:left;}
   .lrow.sep{display:block; color:var(--amar); font-style:italic; font-size:12px; text-align:center;}
+  .lrow.sub .jg{color:var(--amar);}
 
   #entrada{display:flex; align-items:center; gap:8px; font-size:15px; min-height:24px;}
   #entrada .lbl{color:var(--muted); font-size:12px;}
@@ -195,12 +196,16 @@
     <div id="cfgCancha"></div>
     <div id="cfgLiberoWrap"><span class="cfgLibLbl">Líbero (opcional)</span><div id="cfgLiberoSlot" class="cfgPos lib"></div></div>
   </div>
-  <div class="card">
+  <div class="card" id="cfgFormatoCard">
     <h2>Formato del partido</h2>
-    <label>Sets</label>
-    <div class="seg" id="cfgSets"><button data-n="3">A 3 sets</button><button data-n="5" class="on">A 5 sets</button></div>
-    <label>¿Quién saca primero?</label>
-    <div class="seg" id="cfgSaque"><button data-s="A" class="on">Mi equipo</button><button data-s="R">Rival</button></div>
+    <div id="cfgSetsRow">
+      <label>Sets</label>
+      <div class="seg" id="cfgSets"><button data-n="3">A 3 sets</button><button data-n="5" class="on">A 5 sets</button></div>
+    </div>
+    <div id="cfgSaqueRow">
+      <label>¿Quién saca primero?</label>
+      <div class="seg" id="cfgSaque"><button data-s="A" class="on">Mi equipo</button><button data-s="R">Rival</button></div>
+    </div>
   </div>
   <button class="btnBig" id="btnIniciar">▶ Iniciar partido</button>
   <button class="btnBig" id="btnVolverSel" style="background:#3a4f6a">← Volver a equipos</button>
@@ -311,7 +316,7 @@ const FRENTE=[4,3,2], ZAGA=[5,6,1], ZAGA_POS=[1,5,6], FRONT_POS=[2,3,4];
 const ROLES={COL:"Colocadora",PUN:"Punta",LIB:"Líbero",OPU:"Opuesta",DEF:"Defensa",CEN:"Central","?":"Sin definir"};
 function opcionesRol(r="?"){ return Object.entries(ROLES).map(([k,v])=>`<option value="${k}" ${r===k?"selected":""}>${k} · ${v}</option>`).join(""); }
 let S=null, sel=null, accionPendiente=null;
-let editEquipoOriginal=null, cfgEquipoNombre=null, cfgAsignacion={}, cfgPickerSlot=null, cfgModoSet=false;
+let editEquipoOriginal=null, cfgEquipoNombre=null, cfgAsignacion={}, cfgPickerSlot=null, cfgModoSet=false, cfgEsDecisivo=false;
 let currentAvisoCallback=null;
 
 const cargarEquipos = () => { try{ return JSON.parse(localStorage.getItem(LS_TEAMS))||{}; }catch(e){ return {}; } };
@@ -470,26 +475,41 @@ function abrirConfigNuevoSet(){
   renderCfgCancha();
   $("#cfgTitulo").textContent=`Alineación — Set ${S.set}`;
   $("#btnIniciar").textContent=`▶ Iniciar Set ${S.set}`;
-  // Ocultar campos irrelevantes en modo set
   $("#cfgRival").closest(".card").style.display="none";
-  $$("#config .card").slice(-1)[0].style.display="none"; // card de formato/saque
+  $("#cfgSetsRow").style.display="none";
+  if(cfgEsDecisivo){
+    $$("#cfgSaque button").forEach(b=>b.classList.remove("on")); // sorteo: sin preselección
+    $("#cfgSaqueRow").style.display="";
+    $("#cfgFormatoCard").style.display="";
+  } else {
+    setSaque(S.sacandoInicial?"A":"R");
+    $("#cfgFormatoCard").style.display="none";
+  }
   $("#btnVolverSel").style.display="none";
   mostrar("config");
 }
 function cerrarModoSet(){
-  cfgModoSet=false;
+  cfgModoSet=false; cfgEsDecisivo=false;
   $("#cfgRival").closest(".card").style.display="";
-  $$("#config .card").slice(-1)[0].style.display="";
+  $("#cfgSetsRow").style.display="";
+  $("#cfgSaqueRow").style.display="";
+  $("#cfgFormatoCard").style.display="";
   $("#btnVolverSel").style.display="";
   $("#btnIniciar").textContent="▶ Iniciar partido";
 }
 function iniciarPartido(){
   if(cfgModoSet){
     for(let p=1;p<=6;p++){ if(!cfgAsignacion[p]){ toast(`Falta asignar P${p}`); return; } }
+    if(cfgEsDecisivo){
+      const selBtn=$("#cfgSaque button.on");
+      if(!selBtn){ toast("Selecciona quién saca el set decisivo (sorteo)"); return; }
+      S.sacandoInicial=selBtn.dataset.s==="A"; S.sacando=S.sacandoInicial;
+    }
     const rot={}; for(let p=1;p<=6;p++) rot[p]=cfgAsignacion[p];
     const libNum=cfgAsignacion["L"];
     const libJug=libNum?S.jugadoras.find(j=>String(j.num)===String(libNum)):null;
     S.rotacion={...rot}; S.rotInicial={...rot}; S.libero=libJug||null;
+    S.cambios={count:0,pares:{},retirados:[]};
     cerrarModoSet(); guardar(); irAJuego(); anunciarSaque();
     return;
   }
@@ -509,7 +529,8 @@ function iniciarPartido(){
     jugadoras, nombres:Object.fromEntries(eq.jugadoras.map(j=>[j.num,j.nom])),
     libero:libJug, bestOf, set:1, puntosA:0, puntosR:0, setsA:0, setsR:0, terminado:false,
     sacando, sacandoInicial:sacando,
-    rotacion:{...rot}, rotInicial:{...rot}, liberoEnCancha:false, numReemplazado:null, log:[], hist:[] };
+    rotacion:{...rot}, rotInicial:{...rot}, liberoEnCancha:false, numReemplazado:null,
+    log:[], hist:[], cambios:{count:0,pares:{},retirados:[]} };
   if(libJug) S.nombres[libJug.num]=libJug.nom;
   sel=null; accionPendiente=null; guardar(); irAJuego();
 }
@@ -562,7 +583,7 @@ function crearCabecera(){ const d=document.createElement("div"); d.className="lr
 function crearFilaLog(e,n){
   const d=document.createElement("div");
   if(e.separador){ d.className="lrow sep"; d.textContent=e.accion; return d; }
-  d.className="lrow";
+  d.className="lrow"+(e.sub?" sub":"");
   const jug=e.sub?`⇄ entra ${e.entra} · sale ${e.sale}`:(e.jugadora!=null?e.accion+" "+e.jugadora:e.accion);
   d.innerHTML=`<span class="idx">${n}</span><span class="mi">${e.miPunto?e.puntosA:""}</span><span class="jg">${jug}</span><span class="ri">${e.rivalPunto?e.puntosR:""}</span>`;
   return d;
@@ -651,13 +672,18 @@ function finalizarSet(){
     return;
   }
   // Pre-cargar con la alineación inicial del set que terminó (no cómo terminó)
+  const esDecisivo=(S.set+1===S.bestOf);
   const rotAnterior={...S.rotInicial};
   const libAnterior=S.libero?S.libero.num:null;
   S.set++; S.puntosA=0; S.puntosR=0; S.rotacion={...S.rotInicial};
-  S.liberoEnCancha=false; S.numReemplazado=null; S.sacando=S.sacandoInicial;
+  S.liberoEnCancha=false; S.numReemplazado=null;
+  S.cambios={count:0,pares:{},retirados:[]};
+  if(!esDecisivo){ S.sacandoInicial=!S.sacandoInicial; }
+  S.sacando=S.sacandoInicial;
   S.log.push({separador:true, accion:`— Set ${setNum} ${marcador} para ${ganador} · empieza Set ${S.set} —`, hora:new Date().toISOString()});
-  cfgModoSet=true; cfgEquipoNombre=S.miEquipo; cfgAsignacion={...rotAnterior, L:libAnterior};
-  aviso({msg:`Set ${setNum} para ${ganador}  (${marcador}).\nEmpieza el Set ${S.set} · Confirma o ajusta la alineación.`, cb:abrirConfigNuevoSet});
+  cfgModoSet=true; cfgEsDecisivo=esDecisivo; cfgEquipoNombre=S.miEquipo; cfgAsignacion={...rotAnterior, L:libAnterior};
+  const msgSaque=esDecisivo?"\nSet decisivo · se sortea quién saca.":(!S.sacandoInicial?"  (saca el rival)":"  (saca mi equipo)");
+  aviso({msg:`Set ${setNum} para ${ganador}  (${marcador}).${msgSaque}\nEmpieza el Set ${S.set} · Confirma o ajusta la alineación.`, cb:abrirConfigNuevoSet});
 }
 function bancaActual(){
   const enCancha=new Set(Object.values(S.rotacion).map(String));
@@ -666,12 +692,28 @@ function bancaActual(){
 function abrirCambio(){
   accionPendiente=null; marcarArmado();
   if(!sel){ toast("Toca primero la jugadora que SALE"); return; }
+  if(!S.cambios) S.cambios={count:0,pares:{},retirados:[]};
+  if(S.cambios.count>=6){ aviso("Se agotaron los 6 cambios permitidos en este set."); return; }
+  const saleNum=String(sel.num);
+  if(S.cambios.retirados.includes(saleNum)){
+    aviso(`La Nº ${saleNum} (${S.nombres[saleNum]||""}) ya no puede participar en más cambios en este set.`); return;
+  }
   const banca=bancaActual();
   if(!banca.length){ toast("No hay jugadoras en banca"); return; }
+  const parDeSale=S.cambios.pares[saleNum];
+  const bancaFiltrada=banca.filter(j=>{
+    const jNum=String(j.num);
+    if(S.cambios.retirados.includes(jNum)) return false;
+    if(parDeSale && jNum!==parDeSale) return false;
+    const parDeEntra=S.cambios.pares[jNum];
+    if(parDeEntra && parDeEntra!==saleNum) return false;
+    return true;
+  });
+  if(!bancaFiltrada.length){ aviso(`No hay cambios válidos disponibles para la Nº ${saleNum}.\n(La única jugadora autorizada para entrar por ella no está disponible)`); return; }
   const esLib = S.libero && String(sel.num)===String(S.libero.num);
-  $("#cambioSub").textContent=`Sale Nº ${sel.num} (P${sel.pos})${esLib?" [líbero]":""}. ¿Quién entra?`;
+  $("#cambioSub").textContent=`Sale Nº ${sel.num} (P${sel.pos})${esLib?" [líbero]":""} · Cambios: ${S.cambios.count}/6. ¿Quién entra?`;
   const cont=$("#listaBanca"); cont.innerHTML="";
-  banca.forEach(j=>{ const b=document.createElement("button"); b.className="benchBtn"; b.textContent=`Nº ${j.num}  ${j.nom||""}`; b.onclick=()=>hacerCambio(j.num); cont.appendChild(b); });
+  bancaFiltrada.forEach(j=>{ const b=document.createElement("button"); b.className="benchBtn"; b.textContent=`Nº ${j.num}  ${j.nom||""}`; b.onclick=()=>hacerCambio(j.num); cont.appendChild(b); });
   $("#dlgCambio").showModal();
 }
 function hacerCambio(entra){
@@ -679,8 +721,19 @@ function hacerCambio(entra){
   const pos=sel.pos, sale=S.rotacion[pos]; S.rotacion[pos]=entra;
   if(S.libero && String(sale)===String(S.libero.num)){ S.liberoEnCancha=false; S.numReemplazado=null; }
   if(!S.nombres[entra]){ const j=S.jugadoras.find(x=>String(x.num)===String(entra)); if(j) S.nombres[entra]=j.nom; }
+  if(!S.cambios) S.cambios={count:0,pares:{},retirados:[]};
+  S.cambios.count++;
+  const entraStr=String(entra), saleStr=String(sale);
+  if(S.cambios.pares[saleStr]===entraStr){
+    // Cambio inverso: ambas se retiran del sistema de cambios
+    S.cambios.retirados.push(entraStr, saleStr);
+    delete S.cambios.pares[entraStr]; delete S.cambios.pares[saleStr];
+  } else {
+    // Primer cambio: crear par exclusivo
+    S.cambios.pares[entraStr]=saleStr; S.cambios.pares[saleStr]=entraStr;
+  }
   S.log.push({set:S.set, accion:"cambio", sub:true, entra, sale, pos, jugadora:null, miPunto:false, rivalPunto:false, hora:new Date().toISOString()});
-  sel=null; $("#dlgCambio").close(); guardar(); render(); toast(`Entra ${entra}, sale ${sale}`);
+  sel=null; $("#dlgCambio").close(); guardar(); render(); toast(`Entra ${entra}, sale ${sale}  (${S.cambios.count}/6)`);
 }
 function botonLibero(){
   accionPendiente=null; marcarArmado();
@@ -703,14 +756,16 @@ $("#saque").onclick=()=>{ snapshot(); S.sacando=!S.sacando; guardar(); render();
 
 function snapshot(){
   S.hist.push(JSON.stringify({puntosA:S.puntosA,puntosR:S.puntosR,setsA:S.setsA,setsR:S.setsR,set:S.set,terminado:S.terminado,
-    sacando:S.sacando,rotacion:S.rotacion,liberoEnCancha:S.liberoEnCancha,numReemplazado:S.numReemplazado,logLen:S.log.length}));
+    sacando:S.sacando,rotacion:S.rotacion,liberoEnCancha:S.liberoEnCancha,numReemplazado:S.numReemplazado,logLen:S.log.length,
+    cambios:S.cambios||{count:0,pares:{},retirados:[]}}));
   if(S.hist.length>200) S.hist.shift();
 }
 function deshacer(){
   if(!S.hist.length){ toast("Nada que deshacer"); return; }
   const h=JSON.parse(S.hist.pop());
   Object.assign(S,{puntosA:h.puntosA,puntosR:h.puntosR,setsA:h.setsA,setsR:h.setsR,set:h.set,terminado:h.terminado,
-    sacando:h.sacando,rotacion:h.rotacion,liberoEnCancha:h.liberoEnCancha,numReemplazado:h.numReemplazado});
+    sacando:h.sacando,rotacion:h.rotacion,liberoEnCancha:h.liberoEnCancha,numReemplazado:h.numReemplazado,
+    cambios:h.cambios||{count:0,pares:{},retirados:[]}});
   S.log.length=h.logLen; sel=null; accionPendiente=null; marcarArmado(); guardar(); render(); toast("Deshecho");
 }
 
