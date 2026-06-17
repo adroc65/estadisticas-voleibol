@@ -519,6 +519,7 @@ function finalizarSet(){
     S.terminado=true;
     S.log.push({separador:true, accion:`🏆 Set ${setNum} ${marcador} · FIN DEL PARTIDO (${S.setsA}-${S.setsR})`, hora:new Date().toISOString()});
     aviso(`🏆 ¡Partido terminado!\nGanó ${S.setsA>S.setsR?S.miEquipo:S.rival}  (${S.setsA}-${S.setsR} en sets).`);
+    setTimeout(()=>{ exportJSON(); setTimeout(exportCSV, 700); }, 600);
     return;
   }
   S.set++; S.puntosA=0; S.puntosR=0; S.rotacion={...S.rotInicial};
