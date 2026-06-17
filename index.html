@@ -650,11 +650,8 @@ function finalizarSet(){
     setTimeout(()=>{ exportJSON(); setTimeout(exportCSV, 700); }, 600);
     return;
   }
-  // Guardar rotación real del set que terminó (sin el líbero si estaba en cancha)
-  const rotAnterior={...S.rotacion};
-  if(S.liberoEnCancha && S.numReemplazado!=null){
-    for(const p in rotAnterior){ if(String(rotAnterior[p])===String(S.libero.num)){ rotAnterior[p]=S.numReemplazado; break; } }
-  }
+  // Pre-cargar con la alineación inicial del set que terminó (no cómo terminó)
+  const rotAnterior={...S.rotInicial};
   const libAnterior=S.libero?S.libero.num:null;
   S.set++; S.puntosA=0; S.puntosR=0; S.rotacion={...S.rotInicial};
   S.liberoEnCancha=false; S.numReemplazado=null; S.sacando=S.sacandoInicial;
