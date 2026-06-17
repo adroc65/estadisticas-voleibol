@@ -578,11 +578,11 @@ function accionTocada(accion){
 }
 function registrar(accion,num){
   if(S.terminado){ toast("El partido ya terminó (usa Deshacer si fue error)"); return; }
-  if(num && (accion==="A+"||accion==="A-"||accion==="B+"||accion==="B-")){
+  if(num && (accion==="B+"||accion==="B-")){
     const posActual=Object.entries(S.rotacion).find(([p,n])=>String(n)===String(num));
     if(posActual && [1,5,6].includes(+posActual[0])){
       accionPendiente=null; sel=null; marcarArmado(); renderEntrada();
-      aviso(`❌ La Nº ${num} (${S.nombres[num]||""}) está en zaga P${posActual[0]} · Ataque y Bloqueo solo son válidos en zona delantera (P2, P3, P4).`);
+      aviso(`❌ La Nº ${num} (${S.nombres[num]||""}) está en zaga P${posActual[0]} · El Bloqueo solo es válido en zona delantera (P2, P3, P4).`);
       return;
     }
   }
