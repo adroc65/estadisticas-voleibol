@@ -471,7 +471,7 @@ function iniciarPartido(){
   const rot={}; for(let p=1;p<=6;p++) rot[p]=cfgAsignacion[p];
   const libNum=cfgAsignacion["L"];
   const libJug=libNum?eq.jugadoras.find(j=>String(j.num)===String(libNum)):null;
-  const jugadoras=eq.jugadoras.map(j=>({num:j.num,nom:j.nom,
+  const jugadoras=eq.jugadoras.map(j=>({num:j.num,nom:j.nom,rol:j.rol||"?",
     pos:Object.entries(rot).find(([p,n])=>String(n)===String(j.num))?+Object.entries(rot).find(([p,n])=>String(n)===String(j.num))[0]:0}));
   const eqAll=cargarEquipos();
   if(eqAll[nombre]){ eqAll[nombre].lineup2={...cfgAsignacion}; eqAll[nombre].saqueInicial=sacando?"A":"R"; eqAll[nombre].bestOf=bestOf; guardarEquipos(eqAll); }
@@ -512,7 +512,8 @@ function renderCancha(){
     const num=S.rotacion[p], esLib=S.libero&&num===S.libero.num, esSaque=(p===1 && S.sacando);
     const div=document.createElement("div");
     div.className="pos"+(sel&&sel.pos===p?" sel":"")+(esLib?" lib":"")+(esSaque?" saca sacaAhora":"");
-    div.innerHTML=`<span class="znum">P${p}</span>${esSaque?'<span class="saca-badge">🏐</span>':''}<span class="jnum">${num??"—"}</span><span class="jnom">${(S.nombres[num]||"").slice(0,10)}</span>`;
+    const jRol=S.jugadoras.find(j=>String(j.num)===String(num))?.rol||"";
+    div.innerHTML=`<span class="znum">P${p}</span>${esSaque?'<span class="saca-badge">🏐</span>':''}<span class="jnum">${num??"—"}</span><span class="jnom">${(S.nombres[num]||"").slice(0,8)}${jRol?" · "+jRol:""}</span>`;
     div.onclick=()=>seleccionar(p,num); c.appendChild(div);
   });
   fila(FRENTE); const d=document.createElement("div"); d.className="reddiv"; c.appendChild(d); fila(ZAGA);
@@ -577,6 +578,14 @@ function accionTocada(accion){
 }
 function registrar(accion,num){
   if(S.terminado){ toast("El partido ya terminó (usa Deshacer si fue error)"); return; }
+  if(num && (accion==="A+"||accion==="A-"||accion==="B+"||accion==="B-")){
+    const posActual=Object.entries(S.rotacion).find(([p,n])=>String(n)===String(num));
+    if(posActual && [1,5,6].includes(+posActual[0])){
+      accionPendiente=null; sel=null; marcarArmado(); renderEntrada();
+      aviso(`❌ La Nº ${num} (${S.nombres[num]||""}) está en zaga P${posActual[0]} · Ataque y Bloqueo solo son válidos en zona delantera (P2, P3, P4).`);
+      return;
+    }
+  }
   snapshot();
   const mio=PUNTO_MIO(accion), rival=PUNTO_RIVAL(accion);
   if(mio) S.puntosA++; else if(rival) S.puntosR++;
