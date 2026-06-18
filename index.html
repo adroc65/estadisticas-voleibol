@@ -103,7 +103,7 @@
   .lrow.cab span{color:var(--muted); font-size:10px; font-weight:700; text-align:center; text-transform:uppercase;}
   .lrow.cab span:nth-child(3){text-align:left;}
   .lrow.sep{display:block; color:var(--amar); font-style:italic; font-size:12px; text-align:center;}
-  .lrow.sub .jg{color:var(--amar);}
+  .lrow.sub .jg{color:#ffe500;}
 
   #entrada{display:flex; align-items:center; gap:8px; font-size:15px; min-height:24px;}
   #entrada .lbl{color:var(--muted); font-size:12px;}
@@ -472,6 +472,7 @@ function abrirPicker(slot){
 const setSaque=s=>$$("#cfgSaque button").forEach(b=>b.classList.toggle("on",b.dataset.s===s));
 const setSets =n=>$$("#cfgSets button").forEach(b=>b.classList.toggle("on",b.dataset.n===String(n)));
 function abrirConfigNuevoSet(){
+  S.cambios={count:0,pares:{},retirados:[]};
   renderCfgCancha();
   $("#cfgTitulo").textContent=`Alineación — Set ${S.set}`;
   $("#btnIniciar").textContent=`▶ Iniciar Set ${S.set}`;
@@ -507,6 +508,12 @@ function iniciarPartido(){
     }
     const rot={}; for(let p=1;p<=6;p++) rot[p]=cfgAsignacion[p];
     const libNum=cfgAsignacion["L"];
+    // Refrescar jugadoras desde el equipo actual para que la banca refleje la nueva alineación
+    const eqActual=cargarEquipos()[S.miEquipo];
+    if(eqActual){
+      S.jugadoras=eqActual.jugadoras.filter(j=>j.num!=="").map(j=>({num:j.num,nom:j.nom,rol:j.rol||"?",pos:0}));
+      eqActual.jugadoras.forEach(j=>{ if(j.num) S.nombres[j.num]=j.nom; });
+    }
     const libJug=libNum?S.jugadoras.find(j=>String(j.num)===String(libNum)):null;
     S.rotacion={...rot}; S.rotInicial={...rot}; S.libero=libJug||null;
     S.cambios={count:0,pares:{},retirados:[]};
