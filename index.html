@@ -170,6 +170,14 @@
   table.stat .dr{color:#ff8a80; font-weight:700;}
   table.stat tr.tot td{font-weight:800; border-top:2px solid var(--line); background:#0c1a2c;}
   table.stat .ef{font-weight:800;}
+  table.stat .warn{color:var(--amar);}
+  table.stat .ok{color:#69f0ae; font-weight:800;}
+  #filtroSetWrap{display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap;}
+  .filtroSetBtn{flex:1; min-width:60px; padding:9px 4px; background:#0c1a2c; border:1px solid var(--line);
+    color:var(--muted); border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;}
+  .filtroSetBtn.on{background:var(--azul); color:#fff; border-color:var(--azulc);}
+  .secTit{font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.5px;
+    color:var(--azulc); border-bottom:1px solid var(--line); padding-bottom:6px; margin:0 0 8px;}
 </style>
 </head>
 <body>
@@ -286,13 +294,46 @@
 <div id="stats" class="pantalla oculto">
   <h1>📊 Estadísticas</h1>
   <p class="sub" id="statsSub"></p>
+  <div id="filtroSetWrap" style="display:none"></div>
   <div class="card">
+    <p class="secTit">Por Jugadora</p>
     <div class="statWrap"><table class="stat">
       <thead><tr><th class="nom" style="text-align:left">Jugadora</th><th>S</th><th>A</th><th>B</th><th>Pts</th><th>D</th><th>R</th><th>Ef%</th></tr></thead>
       <tbody id="statBody"></tbody>
     </table></div>
     <p class="sub" id="statExtra" style="text-align:left;margin-top:10px"></p>
     <p class="leyenda">Cada celda S/A/B: positivas y, en rojo, las negativas. Pts = positivas (S+A+B). Ef% = positivas/(positivas+negativas).</p>
+  </div>
+  <div class="card">
+    <p class="secTit">Por Rotación</p>
+    <div class="statWrap"><table class="stat" style="min-width:420px">
+      <thead><tr><th>Rot</th><th>S.Pts+</th><th>S.Pts-</th><th>S.Ef%</th><th>SO Oport</th><th>SO Logr</th><th>SO%</th></tr></thead>
+      <tbody id="bodyRotacion"></tbody>
+    </table></div>
+    <p class="leyenda">S. = saque propio · SO = Sideout (recuperar el saque cuando saca el rival) · ⚠ eficiencia &lt; 50%</p>
+  </div>
+  <div class="card">
+    <p class="secTit">Por Colocadora</p>
+    <div class="statWrap"><table class="stat">
+      <thead><tr><th class="nom" style="text-align:left">COL</th><th>A+</th><th>A-</th><th>B+</th><th>Ef.A%</th><th>Jugadas</th></tr></thead>
+      <tbody id="bodyColocadora"></tbody>
+    </table></div>
+    <p class="leyenda">Ef.A% = eficiencia de ataque mientras esa COL colocó.</p>
+  </div>
+  <div class="card">
+    <p class="secTit">Con Líbero en Cancha</p>
+    <div class="statWrap"><table class="stat">
+      <thead><tr><th class="nom" style="text-align:left">Líbero</th><th>D-</th><th>R-</th><th>Jugadas</th><th>Ef.Def%</th></tr></thead>
+      <tbody id="bodyLibero"></tbody>
+    </table></div>
+    <p class="leyenda">Ef.Def% = jugadas sin error defensivo / total jugadas en ese estado.</p>
+  </div>
+  <div class="card">
+    <p class="secTit">COL + Líbero · Eficiencia de Ataque</p>
+    <div class="statWrap"><table class="stat">
+      <thead><tr><th class="nom" style="text-align:left">COL</th><th class="nom" style="text-align:left">Líbero</th><th>A+</th><th>A-</th><th>Ef%</th><th>Jugadas</th></tr></thead>
+      <tbody id="bodyCombo"></tbody>
+    </table></div>
   </div>
   <button class="btnBig btnSec" id="btnExportStats">⬇ Exportar estadísticas (CSV)</button>
   <button class="btnBig" id="btnVolverJuego" style="background:#3a4f6a">← Volver al partido</button>
@@ -690,13 +731,13 @@ function registrar(accion,num){
     }
   }
   snapshot();
-  const rotAntesDeJugada=S.rotNum||1;
+  const rotAntesDeJugada=S.rotNum||1, sacandoAntes=S.sacando;
   const mio=PUNTO_MIO(accion), rival=PUNTO_RIVAL(accion);
   if(mio) S.puntosA++; else if(rival) S.puntosR++;
   if(mio){ if(!S.sacando){ rotar(); S.sacando=true; chequearLiberoFrontal(); anunciarSaque(); } } else if(rival){ if(S.sacando) S.sacando=false; }
   S.log.push({set:S.set, accion, jugadora:NECESITA_NUM(accion)?num:null,
     miPunto:mio, rivalPunto:rival, puntosA:S.puntosA, puntosR:S.puntosR, sacando:S.sacando, hora:new Date().toISOString()});
-  sxPush("jugada",{accion, jugadora:NECESITA_NUM(accion)?num:null, rot:rotAntesDeJugada});
+  sxPush("jugada",{accion, jugadora:NECESITA_NUM(accion)?num:null, rot:rotAntesDeJugada, sacando:sacandoAntes});
   sel=null; accionPendiente=null;
   chequearFinSet(); guardar(); render();
 }
@@ -875,6 +916,19 @@ function mostrarStats(){
   trT.innerHTML=`<td class="nom">TOTAL</td><td>${celda(T.Sp,T.Sn)}</td><td>${celda(T.Ap,T.An)}</td><td>${celda(T.Bp,T.Bn)}</td><td>${ptsT}</td><td class="dr">${T.D?("-"+T.D):0}</td><td class="dr">${T.R?("-"+T.R):0}</td><td>${efT==null?"—":efT+"%"}</td>`;
   tb.appendChild(trT);
   $("#statExtra").innerHTML=`Puntos por <b>error del rival (E)</b>: ${er}`;
+  // Filtro de set
+  const fw=$("#filtroSetWrap"); fw.innerHTML="";
+  if(SX&&SX.sets&&SX.sets.length>1){
+    fw.style.display="flex";
+    const mkBtn=(txt,set,activo)=>{
+      const b=document.createElement("button"); b.className="filtroSetBtn"+(activo?" on":""); b.textContent=txt;
+      b.onclick=()=>{ fw.querySelectorAll(".filtroSetBtn").forEach(x=>x.classList.remove("on")); b.classList.add("on"); mostrarStatsAvanzadas(set); };
+      fw.appendChild(b);
+    };
+    mkBtn("Todos",null,true);
+    SX.sets.forEach(s=>mkBtn(`Set ${s.set}`,s.set,false));
+  } else fw.style.display="none";
+  mostrarStatsAvanzadas(null);
   mostrar("stats");
 }
 function exportStats(){
@@ -885,6 +939,91 @@ function exportStats(){
     csv+=`${n},"${(S.nombres[n]||"").replace(/"/g,'')}",${s.Sp},${s.Sn},${s.Ap},${s.An},${s.Bp},${s.Bn},${s.D},${s.R},${pts},${ef}\n`; });
   csv+=`\nErrores del rival (E),${er}\n`;
   descargar(csv, nombreArch("estadisticas","csv"), "text/csv");
+}
+
+/* ----- ESTADÍSTICAS AVANZADAS ----- */
+function calcStatsAvanzadas(filtroSet){
+  if(!SX||!SX.sets||!SX.sets.length) return null;
+  const MA=a=>a==="E"||a.slice(-1)==="+", MR=a=>a==="D"||a==="R"||a.slice(-1)==="-";
+  const evs=SX.sets.filter(s=>filtroSet==null||s.set===filtroSet).flatMap(s=>s.eventos.filter(e=>e.tipo==="jugada"));
+  if(!evs.length) return null;
+  const rotStats={}, colStats={}, libStats={}, comboStats={};
+  for(let r=1;r<=6;r++) rotStats[r]={sp:0,sn:0,sop:0,son:0};
+  evs.forEach(e=>{
+    const mio=MA(e.accion), riv=MR(e.accion);
+    const rot=e.rot||1, col=e.setter_activa||"?", lib=e.libero_activa||"sin";
+    const rs=rotStats[rot]||(rotStats[rot]={sp:0,sn:0,sop:0,son:0});
+    if(e.sacando===true){ if(mio)rs.sp++; else if(riv)rs.sn++; }
+    else if(e.sacando===false){ rs.sop++; if(mio)rs.son++; }
+    if("AB".includes(e.accion[0])){
+      const cs=colStats[col]||(colStats[col]={Ap:0,An:0,Bp:0,n:0});
+      cs.n++; if(e.accion==="A+")cs.Ap++; else if(e.accion==="A-")cs.An++; else if(e.accion==="B+")cs.Bp++;
+    }
+    const ls=libStats[lib]||(libStats[lib]={D:0,R:0,n:0});
+    ls.n++; if(e.accion==="D")ls.D++; else if(e.accion==="R")ls.R++;
+    if(e.accion[0]==="A"){
+      const ck=col+"||"+lib, cs2=comboStats[ck]||(comboStats[ck]={col,lib,Ap:0,An:0,n:0});
+      cs2.n++; if(e.accion==="A+")cs2.Ap++; else cs2.An++;
+    }
+  });
+  return{rotStats,colStats,libStats,comboStats};
+}
+function mostrarStatsAvanzadas(filtroSet){
+  const d=calcStatsAvanzadas(filtroSet);
+  const noData='<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:10px">Sin datos · juega un partido con v2.0 para ver estas estadísticas</td></tr>';
+  const ef=(p,n)=>(p+n)?Math.round(p/(p+n)*100):null;
+  const pct=(a,b)=>b?Math.round(a/b*100):null;
+  const wn=v=>v!=null&&v<50?' <span class="warn">⚠</span>':"";
+  const efStr=(v,thr=50)=>v!=null?`<span class="${v<thr?"warn":"ok"}">${v}%</span>`:"—";
+  // Rotación
+  const brRot=$("#bodyRotacion"); brRot.innerHTML="";
+  if(!d){ brRot.innerHTML=noData; } else {
+    for(let r=1;r<=6;r++){
+      const rs=d.rotStats[r], efS=ef(rs.sp,rs.sn), soP=pct(rs.son,rs.sop);
+      const tr=document.createElement("tr");
+      tr.innerHTML=`<td><b>R${r}</b></td><td>${rs.sp}</td><td>${rs.sn?`<span class="neg">-${rs.sn}</span>`:0}</td>
+        <td>${efStr(efS)}</td><td>${rs.sop}</td><td>${rs.son}</td><td>${efStr(soP)}</td>`;
+      brRot.appendChild(tr);
+    }
+  }
+  // Colocadora
+  const brCol=$("#bodyColocadora"); brCol.innerHTML="";
+  if(!d||!Object.keys(d.colStats).length){ brCol.innerHTML=noData; } else {
+    Object.entries(d.colStats).sort((a,b)=>b[1].n-a[1].n).forEach(([num,cs])=>{
+      const e=ef(cs.Ap,cs.An), tr=document.createElement("tr");
+      tr.innerHTML=`<td class="nom"><span class="num">${num}</span> ${(S.nombres[num]||"").slice(0,10)}</td>
+        <td>${cs.Ap}</td><td>${cs.An?`<span class="neg">-${cs.An}</span>`:""}</td><td>${cs.Bp}</td>
+        <td>${efStr(e)}</td><td>${cs.n}</td>`;
+      brCol.appendChild(tr);
+    });
+  }
+  // Líbero
+  const brLib=$("#bodyLibero"); brLib.innerHTML="";
+  if(!d||!Object.keys(d.libStats).length){ brLib.innerHTML=noData; } else {
+    const ord=k=>k==="sin"?99:0;
+    Object.entries(d.libStats).sort((a,b)=>ord(a[0])-ord(b[0])||b[1].n-a[1].n).forEach(([lib,ls])=>{
+      const eDef=ls.n?Math.round((ls.n-ls.D-ls.R)/ls.n*100):null;
+      const nom=lib==="sin"?"(sin líbero)":`<span class="num">${lib}</span> ${(S.nombres[lib]||"").slice(0,10)}`;
+      const tr=document.createElement("tr");
+      tr.innerHTML=`<td class="nom">${nom}</td><td class="dr">${ls.D?"-"+ls.D:0}</td><td class="dr">${ls.R?"-"+ls.R:0}</td>
+        <td>${ls.n}</td><td>${efStr(eDef,80)}</td>`;
+      brLib.appendChild(tr);
+    });
+  }
+  // Combo COL+Líbero
+  const brCom=$("#bodyCombo"); brCom.innerHTML="";
+  if(!d||!Object.keys(d.comboStats).length){ brCom.innerHTML=noData; } else {
+    Object.values(d.comboStats).sort((a,b)=>b.n-a.n).forEach(cs=>{
+      const e=ef(cs.Ap,cs.An);
+      const nCol=`<span class="num">${cs.col}</span> ${(S.nombres[cs.col]||"").slice(0,8)}`;
+      const nLib=cs.lib==="sin"?"(sin)":`<span class="num">${cs.lib}</span> ${(S.nombres[cs.lib]||"").slice(0,8)}`;
+      const tr=document.createElement("tr");
+      tr.innerHTML=`<td class="nom">${nCol}</td><td class="nom">${nLib}</td>
+        <td>${cs.Ap}</td><td>${cs.An?`<span class="neg">-${cs.An}</span>`:""}</td>
+        <td>${efStr(e)}</td><td>${cs.n}</td>`;
+      brCom.appendChild(tr);
+    });
+  }
 }
 
 /* ----- EXPORTAR ----- */
