@@ -305,22 +305,65 @@
 <dialog id="dlgLibero"><h2 style="margin-bottom:4px">Entra el líbero</h2><p class="sub" id="liberoSub" style="margin:0 0 8px">¿Por quién entra? (jugadoras de zaga)</p><div id="listaLibero"></div><div class="fila"><button class="btnAdd" style="background:#3a4f6a" id="liberoCancel">Cancelar</button></div></dialog>
 <dialog id="dlgCambio"><h2 style="margin-bottom:4px">Sustitución</h2><p class="sub" id="cambioSub" style="margin:0 0 8px"></p><div id="listaBanca"></div><div class="fila"><button class="btnAdd" style="background:#3a4f6a" id="cambioCancel">Cancelar</button></div></dialog>
 <dialog id="dlgPicker"><h2 id="pickerTit" style="margin-bottom:8px">Asignar jugadora</h2><div id="pickerLista" style="max-height:55vh;overflow-y:auto;margin-bottom:4px"></div><div class="fila"><button class="btnAdd" style="background:#555" id="pickerVaciar">Vaciar</button><button class="btnAdd" style="background:#3a4f6a" id="pickerCancel">Cancelar</button></div></dialog>
+<dialog id="dlgSetterActiva"><h2 style="margin-bottom:4px">¿Cuál es la colocadora activa?</h2><p class="sub" style="margin:0 0 12px">Hay dos colocadoras en cancha · elige cuál dirige el juego</p><div id="listaSetterActiva"></div></dialog>
 <dialog id="dlgExport"><h2 style="margin-bottom:8px">Exportar partido</h2><div class="fila"><button class="btnAdd" id="expJson">JSON (completo)</button><button class="btnAdd" id="expCsv" style="background:var(--verde)">CSV (tabla)</button></div><div class="fila"><button class="btnAdd" id="expShare" style="background:var(--naranja)">Compartir…</button></div><div class="fila"><button class="btnAdd" id="expCerrar" style="background:#3a4f6a">Cerrar</button></div></dialog>
 
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
-const LS_KEY="voleibol_partido_v1", LS_TEAMS="voleibol_equipos_v1";
+const LS_KEY="voleibol_partido_v1", LS_TEAMS="voleibol_equipos_v1", LS_STATS_KEY="voleibol_stats_v1";
 const FRENTE=[4,3,2], ZAGA=[5,6,1], ZAGA_POS=[1,5,6], FRONT_POS=[2,3,4];
 const ROLES={COL:"Colocadora",PUN:"Punta",LIB:"Líbero",OPU:"Opuesta",DEF:"Defensa",CEN:"Central","?":"Sin definir"};
 function opcionesRol(r="?"){ return Object.entries(ROLES).map(([k,v])=>`<option value="${k}" ${r===k?"selected":""}>${k} · ${v}</option>`).join(""); }
-let S=null, sel=null, accionPendiente=null;
+let S=null, SX=null, sel=null, accionPendiente=null;
 let editEquipoOriginal=null, cfgEquipoNombre=null, cfgAsignacion={}, cfgPickerSlot=null, cfgModoSet=false, cfgEsDecisivo=false;
 let currentAvisoCallback=null;
 
 const cargarEquipos = () => { try{ return JSON.parse(localStorage.getItem(LS_TEAMS))||{}; }catch(e){ return {}; } };
 const guardarEquipos = obj => localStorage.setItem(LS_TEAMS, JSON.stringify(obj));
+const guardarSX = () => { if(SX) localStorage.setItem(LS_STATS_KEY, JSON.stringify(SX)); };
+const cargarSX  = () => { try{ return JSON.parse(localStorage.getItem(LS_STATS_KEY)); }catch(e){ return null; } };
+const sxCurSet  = () => SX && SX.sets[SX.sets.length-1];
+function sxPush(tipo, extra={}){
+  const cur=sxCurSet(); if(!cur) return;
+  cur.eventos.push({ seq:cur.eventos.length+1, tipo,
+    rot:S.rotNum||1, setter_activa:S.setterActiva||null,
+    libero_activa:S.liberoEnCancha&&S.libero?String(S.libero.num):null,
+    pts_local:S.puntosA, pts_rival:S.puntosR, ...extra });
+  guardarSX();
+}
+function detectarSetterInicial(){
+  const enCancha=new Set(Object.values(S.rotacion).map(String));
+  const col=S.jugadoras.find(j=>j.rol==="COL"&&enCancha.has(String(j.num)));
+  S.setterActiva=col?String(col.num):null;
+}
+function iniciarSX(){
+  SX={ meta:{ equipo:S.miEquipo, rival:S.rival, fecha:new Date().toISOString().slice(0,10), sistema:"5-1" },
+    sets:[{ set:1, lineup_inicial:{...S.rotacion, L:S.libero?String(S.libero.num):null},
+      setter_inicial:S.setterActiva, eventos:[] }] };
+  guardarSX();
+}
+function sxNuevoSet(){
+  if(!SX) return;
+  SX.sets.push({ set:S.set, lineup_inicial:{...S.rotacion, L:S.libero?String(S.libero.num):null},
+    setter_inicial:S.setterActiva, eventos:[] });
+  guardarSX();
+}
+function preguntarSetterActiva(numA, numB){
+  const lista=$("#listaSetterActiva"); lista.innerHTML="";
+  [numA,numB].forEach(num=>{
+    const b=document.createElement("button"); b.className="benchBtn";
+    b.textContent=`Nº ${num}  ${S.nombres[num]||""}`;
+    b.onclick=()=>{
+      const anterior=S.setterActiva; S.setterActiva=String(num);
+      sxPush("setter_cambio",{setter_anterior:anterior, setter_nueva:String(num), motivo:"doble_col_en_cancha"});
+      guardar(); guardarSX(); $("#dlgSetterActiva").close();
+    };
+    lista.appendChild(b);
+  });
+  $("#dlgSetterActiva").showModal();
+}
 
 function confirmar(msg){
   return new Promise(res=>{ $("#confMsg").textContent=msg; const d=$("#dlgConfirm");
@@ -517,6 +560,7 @@ function iniciarPartido(){
     const libJug=libNum?S.jugadoras.find(j=>String(j.num)===String(libNum)):null;
     S.rotacion={...rot}; S.rotInicial={...rot}; S.libero=libJug||null;
     S.cambios={count:0,pares:{},retirados:[]};
+    S.rotNum=1; detectarSetterInicial(); sxNuevoSet();
     cerrarModoSet(); guardar(); irAJuego(); anunciarSaque();
     return;
   }
@@ -539,9 +583,10 @@ function iniciarPartido(){
     rotacion:{...rot}, rotInicial:{...rot}, liberoEnCancha:false, numReemplazado:null,
     log:[], hist:[], cambios:{count:0,pares:{},retirados:[]} };
   if(libJug) S.nombres[libJug.num]=libJug.nom;
+  S.rotNum=1; S.setterActiva=null; detectarSetterInicial(); iniciarSX();
   sel=null; accionPendiente=null; guardar(); irAJuego();
 }
-function reanudar(){ const d=localStorage.getItem(LS_KEY); if(!d){toast("No hay partido en curso");return;} S=JSON.parse(d); sel=null; accionPendiente=null; irAJuego(); }
+function reanudar(){ const d=localStorage.getItem(LS_KEY); if(!d){toast("No hay partido en curso");return;} S=JSON.parse(d); SX=cargarSX(); sel=null; accionPendiente=null; irAJuego(); }
 
 /* ----- NAVEGACIÓN ----- */
 function mostrar(id){ ["selEquipo","editEquipo","config","juego","stats"].forEach(p=>$("#"+p).classList.toggle("oculto", p!==id)); }
@@ -623,7 +668,7 @@ function renderTabla(){
 }
 
 /* ----- LÓGICA DE JUEGO ----- */
-function rotar(){ const r=S.rotacion,n={}; n[1]=r[2];n[6]=r[1];n[5]=r[6];n[4]=r[5];n[3]=r[4];n[2]=r[3]; S.rotacion=n; }
+function rotar(){ const r=S.rotacion,n={}; n[1]=r[2];n[6]=r[1];n[5]=r[6];n[4]=r[5];n[3]=r[4];n[2]=r[3]; S.rotacion=n; S.rotNum=(S.rotNum||1)%6+1; }
 const PUNTO_MIO    = a => a==="E" || a.slice(-1)==="+";
 const PUNTO_RIVAL  = a => a==="D" || a==="R" || a.slice(-1)==="-";
 const NECESITA_NUM = a => a!=="E";
@@ -645,11 +690,13 @@ function registrar(accion,num){
     }
   }
   snapshot();
+  const rotAntesDeJugada=S.rotNum||1;
   const mio=PUNTO_MIO(accion), rival=PUNTO_RIVAL(accion);
   if(mio) S.puntosA++; else if(rival) S.puntosR++;
   if(mio){ if(!S.sacando){ rotar(); S.sacando=true; chequearLiberoFrontal(); anunciarSaque(); } } else if(rival){ if(S.sacando) S.sacando=false; }
   S.log.push({set:S.set, accion, jugadora:NECESITA_NUM(accion)?num:null,
     miPunto:mio, rivalPunto:rival, puntosA:S.puntosA, puntosR:S.puntosR, sacando:S.sacando, hora:new Date().toISOString()});
+  sxPush("jugada",{accion, jugadora:NECESITA_NUM(accion)?num:null, rot:rotAntesDeJugada});
   sel=null; accionPendiente=null;
   chequearFinSet(); guardar(); render();
 }
@@ -659,6 +706,7 @@ function chequearLiberoFrontal(){
   if(lp && FRONT_POS.includes(lp)){
     const vuelve=S.numReemplazado;
     S.rotacion[lp]=vuelve; S.liberoEnCancha=false; S.numReemplazado=null;
+    sxPush("libero_out",{jugadora:String(S.libero.num), entra_num:String(vuelve), motivo:"rotacion_delantera"});
     banner(`🔄 Sale el líbero · entra Nº ${vuelve}`);
   }
 }
@@ -740,6 +788,15 @@ function hacerCambio(entra){
     S.cambios.pares[entraStr]=saleStr; S.cambios.pares[saleStr]=entraStr;
   }
   S.log.push({set:S.set, accion:"cambio", sub:true, entra, sale, pos, jugadora:null, miPunto:false, rivalPunto:false, hora:new Date().toISOString()});
+  sxPush("sustitucion",{entra:String(entra), sale:String(sale), pos});
+  const jEntra=S.jugadoras.find(j=>String(j.num)===String(entra));
+  const jSale =S.jugadoras.find(j=>String(j.num)===String(sale));
+  if(jSale  && String(S.setterActiva)===String(sale))  S.setterActiva=null;
+  if(jEntra && jEntra.rol==="COL"){
+    const otraCOLEnCancha=S.setterActiva && String(S.setterActiva)!==String(sale);
+    if(otraCOLEnCancha) preguntarSetterActiva(String(entra), String(S.setterActiva));
+    else{ const ant=S.setterActiva; S.setterActiva=String(entra); sxPush("setter_cambio",{setter_anterior:ant, setter_nueva:String(entra), motivo:"sustitucion"}); }
+  }
   sel=null; $("#dlgCambio").close(); guardar(); render(); toast(`Entra ${entra}, sale ${sale}  (${S.cambios.count}/6)`);
 }
 function botonLibero(){
@@ -747,7 +804,9 @@ function botonLibero(){
   if(!S.libero){ toast("Este equipo no tiene líbero (ponle posición Líbero en la plantilla)"); return; }
   if(S.liberoEnCancha){
     snapshot();
-    for(const p in S.rotacion){ if(String(S.rotacion[p])===String(S.libero.num)){ S.rotacion[p]=S.numReemplazado; break; } }
+    const libNum=String(S.libero.num), repNum=String(S.numReemplazado);
+    for(const p in S.rotacion){ if(String(S.rotacion[p])===libNum){ S.rotacion[p]=S.numReemplazado; break; } }
+    sxPush("libero_out",{jugadora:libNum, entra_num:repNum, motivo:"manual"});
     S.numReemplazado=null; S.liberoEnCancha=false; guardar(); render(); toast("Sale el líbero"); return;
   }
   const cont=$("#listaLibero"); cont.innerHTML="";
@@ -757,6 +816,7 @@ function botonLibero(){
 function liberoEntraPor(p){
   snapshot();
   S.numReemplazado=S.rotacion[p]; S.rotacion[p]=S.libero.num; S.liberoEnCancha=true;
+  sxPush("libero_in",{jugadora:String(S.libero.num), reemplaza:String(S.numReemplazado)});
   $("#dlgLibero").close(); guardar(); render(); toast("Entra líbero "+S.libero.num);
 }
 $("#saque").onclick=()=>{ snapshot(); S.sacando=!S.sacando; guardar(); render(); };
@@ -764,7 +824,8 @@ $("#saque").onclick=()=>{ snapshot(); S.sacando=!S.sacando; guardar(); render();
 function snapshot(){
   S.hist.push(JSON.stringify({puntosA:S.puntosA,puntosR:S.puntosR,setsA:S.setsA,setsR:S.setsR,set:S.set,terminado:S.terminado,
     sacando:S.sacando,rotacion:S.rotacion,liberoEnCancha:S.liberoEnCancha,numReemplazado:S.numReemplazado,logLen:S.log.length,
-    cambios:S.cambios||{count:0,pares:{},retirados:[]}}));
+    cambios:S.cambios||{count:0,pares:{},retirados:[]}, rotNum:S.rotNum||1, setterActiva:S.setterActiva||null,
+    sxEvLen:sxCurSet()?sxCurSet().eventos.length:0}));
   if(S.hist.length>200) S.hist.shift();
 }
 function deshacer(){
@@ -773,7 +834,9 @@ function deshacer(){
   Object.assign(S,{puntosA:h.puntosA,puntosR:h.puntosR,setsA:h.setsA,setsR:h.setsR,set:h.set,terminado:h.terminado,
     sacando:h.sacando,rotacion:h.rotacion,liberoEnCancha:h.liberoEnCancha,numReemplazado:h.numReemplazado,
     cambios:h.cambios||{count:0,pares:{},retirados:[]}});
-  S.log.length=h.logLen; sel=null; accionPendiente=null; marcarArmado(); guardar(); render(); toast("Deshecho");
+  S.log.length=h.logLen; S.rotNum=h.rotNum||1; S.setterActiva=h.setterActiva||null;
+  const _sxCur=sxCurSet(); if(_sxCur&&h.sxEvLen!=null) _sxCur.eventos.length=h.sxEvLen; guardarSX();
+  sel=null; accionPendiente=null; marcarArmado(); guardar(); render(); toast("Deshecho");
 }
 
 /* ----- ESTADÍSTICAS ----- */
@@ -825,7 +888,7 @@ function exportStats(){
 }
 
 /* ----- EXPORTAR ----- */
-function exportJSON(){ descargar(JSON.stringify({miEquipo:S.miEquipo, rival:S.rival, jugadoras:S.jugadoras, libero:S.libero, formato:S.bestOf+" sets", resultado:{setsA:S.setsA,setsR:S.setsR}, jugadas:S.log},null,2), nombreArch("partido","json"), "application/json"); }
+function exportJSON(){ descargar(JSON.stringify({miEquipo:S.miEquipo, rival:S.rival, jugadoras:S.jugadoras, libero:S.libero, formato:S.bestOf+" sets", resultado:{setsA:S.setsA,setsR:S.setsR}, jugadas:S.log, stats_avanzadas:SX||undefined},null,2), nombreArch("partido","json"), "application/json"); }
 function exportCSV(){
   let csv="MisPuntos,Jugada,PtsRival\n";
   S.log.forEach(e=>{ if(e.separador){ csv+=`,${e.accion},\n`; return; } const jug=e.sub?`entra ${e.entra} sale ${e.sale}`:(e.jugadora!=null?`${e.accion} ${e.jugadora}`:e.accion); csv+=`${e.miPunto?e.puntosA:""},${jug},${e.rivalPunto?e.puntosR:""}\n`; });
@@ -875,7 +938,7 @@ $("#expCsv").onclick=()=>{exportCSV();$("#dlgExport").close();};
 $("#expShare").onclick=()=>{compartir();$("#dlgExport").close();};
 $("#expCerrar").onclick=()=>$("#dlgExport").close();
 $("#btnExportStats").onclick=exportStats; $("#btnVolverJuego").onclick=()=>mostrar("juego");
-$("#btnNuevoPartido").onclick=async()=>{ if(await confirmar("¿Terminar este partido? (Exporta antes si quieres guardarlo)")){ localStorage.removeItem(LS_KEY); renderSelector(); mostrar("selEquipo"); } };
+$("#btnNuevoPartido").onclick=async()=>{ if(await confirmar("¿Terminar este partido? (Exporta antes si quieres guardarlo)")){ localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_STATS_KEY); SX=null; renderSelector(); mostrar("selEquipo"); } };
 
 /* ----- ARRANQUE ----- */
 (function(){
