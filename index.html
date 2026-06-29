@@ -129,6 +129,8 @@
   #utiles{display:grid; grid-template-columns:repeat(5,1fr); gap:6px;}
   #utiles button{padding:9px 2px; font-size:19px; line-height:1; background:var(--panel2); border:1px solid var(--line);}
   .bUndo{background:var(--amar)!important; color:#222!important;}
+  #btnLibero{background:#6a1b9a!important; color:#fff!important; font-size:14px!important; font-weight:800!important;}
+  #btnExport{font-size:13px!important; font-weight:700!important;}
   .pos.saca{border-color:#00c853;}
   .pos .saca-badge{position:absolute; top:3px; right:5px; font-size:12px;}
   .pos.sacaAhora{background:#16432a; border-color:#00e676; box-shadow:0 0 0 2px #00e676 inset;}
@@ -190,6 +192,7 @@
   <button class="btnBig btnSec oculto" id="btnReanudar">↺ Reanudar partido en curso</button>
   <div class="card"><h2>Mis equipos</h2><div id="listaEquipos"></div></div>
   <button class="btnBig" id="btnNuevoEquipo">➕ Crear equipo nuevo</button>
+  <button class="btnBig btnSec" id="btnVerPartido" style="background:#1a3a2a;border:1px solid #2e7d32;margin-top:6px">📂 Ver estadísticas de partido guardado</button>
 </div>
 
 <!-- 2) CONFIGURA EL PARTIDO -->
@@ -272,9 +275,9 @@
     <div id="utiles">
       <button class="bUndo" id="btnUndo" title="Deshacer">↶</button>
       <button id="btnCambio" title="Cambio / sustitución">⇄</button>
-      <button id="btnLibero" title="Líbero">🔄</button>
+      <button id="btnLibero" title="Líbero">LIB</button>
       <button id="btnStats" title="Estadísticas">📊</button>
-      <button id="btnExport" title="Exportar">⬇</button>
+      <button id="btnExport" title="Guardar partido">Save</button>
     </div>
     <div class="box leyenda" id="boxLeyenda">
       <b>Cómo anotar:</b> toca la acción y luego la jugadora. El <b>Saque</b> se asigna solo a la de P1.
@@ -336,7 +339,6 @@
       <tbody id="bodyCombo"></tbody>
     </table></div>
   </div>
-  <button class="btnBig btnSec" id="btnExportStats">⬇ Exportar estadísticas (CSV)</button>
   <button class="btnBig" id="btnVolverJuego" style="background:#3a4f6a">← Volver al partido</button>
 </div>
 
@@ -348,7 +350,7 @@
 <dialog id="dlgCambio"><h2 style="margin-bottom:4px">Sustitución</h2><p class="sub" id="cambioSub" style="margin:0 0 8px"></p><div id="listaBanca"></div><div class="fila"><button class="btnAdd" style="background:#3a4f6a" id="cambioCancel">Cancelar</button></div></dialog>
 <dialog id="dlgPicker"><h2 id="pickerTit" style="margin-bottom:8px">Asignar jugadora</h2><div id="pickerLista" style="max-height:55vh;overflow-y:auto;margin-bottom:4px"></div><div class="fila"><button class="btnAdd" style="background:#555" id="pickerVaciar">Vaciar</button><button class="btnAdd" style="background:#3a4f6a" id="pickerCancel">Cancelar</button></div></dialog>
 <dialog id="dlgSetterActiva"><h2 style="margin-bottom:4px">¿Cuál es la colocadora activa?</h2><p class="sub" style="margin:0 0 12px">Hay dos colocadoras en cancha · elige cuál dirige el juego</p><div id="listaSetterActiva"></div></dialog>
-<dialog id="dlgExport"><h2 style="margin-bottom:8px">Exportar partido</h2><div class="fila"><button class="btnAdd" id="expJson">JSON (completo)</button><button class="btnAdd" id="expCsv" style="background:var(--verde)">CSV (tabla)</button></div><div class="fila"><button class="btnAdd" id="expShare" style="background:var(--naranja)">Compartir…</button></div><div class="fila"><button class="btnAdd" id="expCerrar" style="background:#3a4f6a">Cerrar</button></div></dialog>
+<input type="file" id="filePartido" accept=".json" style="display:none">
 
 <script>
 "use strict";
@@ -765,7 +767,7 @@ function finalizarSet(){
     S.terminado=true;
     S.log.push({separador:true, accion:`🏆 Set ${setNum} ${marcador} · FIN DEL PARTIDO (${S.setsA}-${S.setsR})`, hora:new Date().toISOString()});
     aviso(`🏆 ¡Partido terminado!\nGanó ${S.setsA>S.setsR?S.miEquipo:S.rival}  (${S.setsA}-${S.setsR} en sets).`);
-    setTimeout(()=>{ exportJSON(); setTimeout(exportCSV, 700); }, 600);
+    setTimeout(()=>{ exportJSON(); }, 600);
     return;
   }
   // Pre-cargar con la alineación inicial del set que terminó (no cómo terminó)
@@ -1028,13 +1030,39 @@ function mostrarStatsAvanzadas(filtroSet){
 }
 
 /* ----- EXPORTAR ----- */
-function exportJSON(){ descargar(JSON.stringify({miEquipo:S.miEquipo, rival:S.rival, jugadoras:S.jugadoras, libero:S.libero, formato:S.bestOf+" sets", resultado:{setsA:S.setsA,setsR:S.setsR}, jugadas:S.log, stats_avanzadas:SX||undefined},null,2), nombreArch("partido","json"), "application/json"); }
+function cargarPartidoGuardado(file){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    let datos; try{ datos=JSON.parse(e.target.result); }catch(err){ toast("Archivo no válido"); return; }
+    if(!datos.jugadoras||!datos.jugadas){ toast("El archivo no es un partido guardado"); return; }
+    // Montar un S temporal de solo lectura para reutilizar mostrarStats
+    const Stmp={
+      miEquipo:datos.miEquipo||"Equipo", rival:datos.rival||"Rival",
+      jugadoras:datos.jugadoras||[], libero:datos.libero||null,
+      log:datos.jugadas||[], bestOf:3, setsA:datos.resultado?.setsA??0, setsR:datos.resultado?.setsR??0,
+      terminado:true, nombres:{}
+    };
+    (datos.jugadoras||[]).forEach(j=>{ Stmp.nombres[j.num]=j.nom; });
+    const SXtmp=datos.stats_avanzadas||null;
+    // Guardar estado actual, mostrar stats del partido cargado y volver
+    const Sbak=S, SXbak=SX;
+    S=Stmp; SX=SXtmp;
+    mostrarStats();
+    $("#statsSub").textContent=`Partido guardado · ${datos.miEquipo} vs ${datos.rival} · ${datos.resultado?.setsA??0}–${datos.resultado?.setsR??0}`;
+    // Cambiar el botón "Volver" para restaurar estado
+    $("#btnVolverJuego").textContent="← Volver al inicio";
+    $("#btnVolverJuego").onclick=()=>{ S=Sbak; SX=SXbak; $("#btnVolverJuego").textContent="← Volver al partido"; $("#btnVolverJuego").onclick=()=>mostrar("juego"); mostrar("selEquipo"); };
+  };
+  reader.readAsText(file);
+}
+
+function exportJSON(){ descargar(JSON.stringify({miEquipo:S.miEquipo, rival:S.rival, jugadoras:S.jugadoras, libero:S.libero, formato:S.bestOf+" sets", resultado:{setsA:S.setsA,setsR:S.setsR}, jugadas:S.log, stats_avanzadas:SX||undefined},null,2), nombreArch(), "application/json"); }
 function exportCSV(){
   let csv="MisPuntos,Jugada,PtsRival\n";
   S.log.forEach(e=>{ if(e.separador){ csv+=`,${e.accion},\n`; return; } const jug=e.sub?`entra ${e.entra} sale ${e.sale}`:(e.jugadora!=null?`${e.accion} ${e.jugadora}`:e.accion); csv+=`${e.miPunto?e.puntosA:""},${jug},${e.rivalPunto?e.puntosR:""}\n`; });
   descargar(csv, nombreArch("partido","csv"), "text/csv");
 }
-const nombreArch=(t,ext)=>`voleibol_${t}_${(S.miEquipo||"equipo").replace(/\W+/g,"_")}_${new Date().toISOString().slice(0,10)}.${ext}`;
+const nombreArch=()=>`VS-${new Date().toISOString().slice(0,10)}-${(S.rival||"Rival").replace(/\s+/g,"_")}.json`;
 function descargar(txt,nombre,tipo){ const blob=new Blob([txt],{type:tipo}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=nombre; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); }
 async function compartir(){
   const txt=JSON.stringify({miEquipo:S.miEquipo,rival:S.rival,resultado:{setsA:S.setsA,setsR:S.setsR},jugadas:S.log},null,2);
@@ -1070,14 +1098,12 @@ $("#pickerCancel").onclick=()=>$("#dlgPicker").close();
 $$("#acciones .half").forEach(b=>b.onclick=()=>accionTocada(b.dataset.a));
 $$("#acciones .solo").forEach(b=>b.onclick=()=>accionTocada(b.dataset.a));
 $("#btnUndo").onclick=deshacer; $("#btnCambio").onclick=abrirCambio; $("#btnLibero").onclick=botonLibero;
-$("#btnStats").onclick=mostrarStats; $("#btnExport").onclick=()=>$("#dlgExport").showModal();
+$("#btnStats").onclick=mostrarStats; $("#btnExport").onclick=exportJSON;
 $("#liberoCancel").onclick=()=>$("#dlgLibero").close();
 $("#cambioCancel").onclick=()=>$("#dlgCambio").close();
-$("#expJson").onclick=()=>{exportJSON();$("#dlgExport").close();};
-$("#expCsv").onclick=()=>{exportCSV();$("#dlgExport").close();};
-$("#expShare").onclick=()=>{compartir();$("#dlgExport").close();};
-$("#expCerrar").onclick=()=>$("#dlgExport").close();
-$("#btnExportStats").onclick=exportStats; $("#btnVolverJuego").onclick=()=>mostrar("juego");
+$("#btnVolverJuego").onclick=()=>mostrar("juego");
+$("#btnVerPartido").onclick=()=>$("#filePartido").click();
+$("#filePartido").onchange=e=>{ if(e.target.files[0]){ cargarPartidoGuardado(e.target.files[0]); e.target.value=""; } };
 $("#btnNuevoPartido").onclick=async()=>{ if(await confirmar("¿Terminar este partido? (Exporta antes si quieres guardarlo)")){ localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_STATS_KEY); SX=null; renderSelector(); mostrar("selEquipo"); } };
 
 /* ----- ARRANQUE ----- */
