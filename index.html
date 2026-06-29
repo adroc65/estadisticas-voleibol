@@ -283,7 +283,8 @@
       <b>Cómo anotar:</b> toca la acción y luego la jugadora. El <b>Saque</b> se asigna solo a la de P1.
       S/A/B: mitad derecha ＋ = punto tuyo · izquierda － = error (punto rival). D/R = punto rival · E = error rival (punto tuyo).
       El set se cierra solo a 25 (15 en el decisivo) con 2 de diferencia.
-      <button id="btnNuevoPartido" style="background:var(--rojo);padding:8px 10px;margin-top:8px;width:100%">⟲ Terminar / Nuevo partido</button>
+      <button id="btnCerrarSet" style="background:#e65100;padding:8px 10px;margin-top:8px;width:100%">✂ Cerrar set manualmente</button>
+      <button id="btnNuevoPartido" style="background:var(--rojo);padding:8px 10px;margin-top:4px;width:100%">⟲ Terminar / Nuevo partido</button>
     </div>
   </div>
   <div id="colDer">
@@ -351,6 +352,25 @@
 <dialog id="dlgPicker"><h2 id="pickerTit" style="margin-bottom:8px">Asignar jugadora</h2><div id="pickerLista" style="max-height:55vh;overflow-y:auto;margin-bottom:4px"></div><div class="fila"><button class="btnAdd" style="background:#555" id="pickerVaciar">Vaciar</button><button class="btnAdd" style="background:#3a4f6a" id="pickerCancel">Cancelar</button></div></dialog>
 <dialog id="dlgSetterActiva"><h2 style="margin-bottom:4px">¿Cuál es la colocadora activa?</h2><p class="sub" style="margin:0 0 12px">Hay dos colocadoras en cancha · elige cuál dirige el juego</p><div id="listaSetterActiva"></div></dialog>
 <input type="file" id="filePartido" accept=".json" style="display:none">
+<dialog id="dlgCerrarSet">
+  <h2 style="margin-bottom:4px">Cerrar set manualmente</h2>
+  <p class="sub" style="margin:0 0 12px">Ingresa el marcador final del set</p>
+  <div class="fila" style="align-items:center;gap:10px">
+    <div style="flex:1;text-align:center">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px" id="dlgCerrarNomA"></div>
+      <input type="number" id="dlgPtsA" min="0" max="99" style="width:100%;font-size:28px;text-align:center;padding:8px;background:var(--panel2);border:1px solid var(--line);color:#fff;border-radius:8px">
+    </div>
+    <div style="font-size:22px;color:var(--muted)">–</div>
+    <div style="flex:1;text-align:center">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px" id="dlgCerrarNomR"></div>
+      <input type="number" id="dlgPtsR" min="0" max="99" style="width:100%;font-size:28px;text-align:center;padding:8px;background:var(--panel2);border:1px solid var(--line);color:#fff;border-radius:8px">
+    </div>
+  </div>
+  <div class="fila" style="margin-top:14px">
+    <button class="btnAdd" style="background:#3a4f6a" id="dlgCerrarCancel">Cancelar</button>
+    <button class="btnAdd" id="dlgCerrarOk">✓ Cerrar set</button>
+  </div>
+</dialog>
 
 <script>
 "use strict";
@@ -1030,6 +1050,44 @@ function mostrarStatsAvanzadas(filtroSet){
 }
 
 /* ----- EXPORTAR ----- */
+function abrirCerrarSet(){
+  $("#dlgCerrarNomA").textContent=S.miEquipo;
+  $("#dlgCerrarNomR").textContent=S.rival;
+  $("#dlgPtsA").value=S.puntosA;
+  $("#dlgPtsR").value=S.puntosR;
+  $("#dlgCerrarSet").showModal();
+}
+function confirmarCerrarSet(){
+  const pA=parseInt($("#dlgPtsA").value)||0, pR=parseInt($("#dlgPtsR").value)||0;
+  if(pA===pR){ toast("El marcador no puede terminar empatado"); return; }
+  $("#dlgCerrarSet").close();
+  S.puntosA=pA; S.puntosR=pR;
+  const ganoA=pA>pR;
+  if(ganoA) S.setsA++; else S.setsR++;
+  const marcador=`${pA}-${pR}`, setNum=S.set, ganador=ganoA?S.miEquipo:S.rival;
+  const paraGanar=Math.ceil(S.bestOf/2);
+  if(S.setsA>=paraGanar||S.setsR>=paraGanar){
+    S.terminado=true;
+    S.log.push({separador:true, accion:`🏆 Set ${setNum} ${marcador} · FIN DEL PARTIDO (${S.setsA}-${S.setsR})`, hora:new Date().toISOString()});
+    guardar(); render();
+    aviso(`🏆 ¡Partido terminado!\nGanó ${S.setsA>S.setsR?S.miEquipo:S.rival}  (${S.setsA}-${S.setsR} en sets).`);
+    setTimeout(()=>{ exportJSON(); }, 600);
+    return;
+  }
+  const esDecisivo=(S.set+1===S.bestOf);
+  const libAnterior=S.libero?S.libero.num:null;
+  const rotAnterior={...S.rotInicial};
+  S.set++; S.puntosA=0; S.puntosR=0; S.rotacion={...S.rotInicial};
+  S.liberoEnCancha=false; S.numReemplazado=null;
+  S.cambios={count:0,pares:{},retirados:[]};
+  S.hist=[];
+  cfgModoSet=true; cfgEsDecisivo=esDecisivo; cfgEquipoNombre=S.miEquipo; cfgAsignacion={...rotAnterior, L:libAnterior};
+  S.log.push({separador:true, accion:`— Set ${setNum} ${marcador} para ${ganador} · empieza Set ${S.set} (cierre manual) —`, hora:new Date().toISOString()});
+  sxNuevoSet();
+  guardar(); render();
+  aviso({msg:`Set ${setNum} para ${ganador}  (${marcador}).\nEmpieza el Set ${S.set} · Confirma o ajusta la alineación.`, cb:abrirConfigNuevoSet});
+}
+
 function cargarPartidoGuardado(file){
   const reader=new FileReader();
   reader.onload=e=>{
@@ -1102,6 +1160,9 @@ $("#btnStats").onclick=mostrarStats; $("#btnExport").onclick=exportJSON;
 $("#liberoCancel").onclick=()=>$("#dlgLibero").close();
 $("#cambioCancel").onclick=()=>$("#dlgCambio").close();
 $("#btnVolverJuego").onclick=()=>mostrar("juego");
+$("#btnCerrarSet").onclick=abrirCerrarSet;
+$("#dlgCerrarCancel").onclick=()=>$("#dlgCerrarSet").close();
+$("#dlgCerrarOk").onclick=confirmarCerrarSet;
 $("#btnVerPartido").onclick=()=>$("#filePartido").click();
 $("#filePartido").onchange=e=>{ if(e.target.files[0]){ cargarPartidoGuardado(e.target.files[0]); e.target.value=""; } };
 $("#btnNuevoPartido").onclick=async()=>{ if(await confirmar("¿Terminar este partido? (Exporta antes si quieres guardarlo)")){ localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_STATS_KEY); SX=null; renderSelector(); mostrar("selEquipo"); } };
