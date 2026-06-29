@@ -1062,7 +1062,7 @@ function exportCSV(){
   S.log.forEach(e=>{ if(e.separador){ csv+=`,${e.accion},\n`; return; } const jug=e.sub?`entra ${e.entra} sale ${e.sale}`:(e.jugadora!=null?`${e.accion} ${e.jugadora}`:e.accion); csv+=`${e.miPunto?e.puntosA:""},${jug},${e.rivalPunto?e.puntosR:""}\n`; });
   descargar(csv, nombreArch("partido","csv"), "text/csv");
 }
-const nombreArch=()=>`VS-${new Date().toISOString().slice(0,10)}-${(S.rival||"Rival").replace(/\s+/g,"_")}.json`;
+const nombreArch=()=>`VS-${new Date().toISOString().slice(0,10)}-${(S.miEquipo||"Equipo").replace(/\s+/g,"_")}-${(S.rival||"Rival").replace(/\s+/g,"_")}.json`;
 function descargar(txt,nombre,tipo){ const blob=new Blob([txt],{type:tipo}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=nombre; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); }
 async function compartir(){
   const txt=JSON.stringify({miEquipo:S.miEquipo,rival:S.rival,resultado:{setsA:S.setsA,setsR:S.setsR},jugadas:S.log},null,2);
