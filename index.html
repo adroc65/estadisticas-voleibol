@@ -452,8 +452,10 @@ function confirmar(msg){
 let avisoCola=[];
 function aviso(item){ avisoCola.push(item); if(!$("#dlgAviso").open) sigAviso(); }
 function sigAviso(){ if(!avisoCola.length) return; const item=avisoCola.shift();
-  const msg=typeof item==="string"?item:item.msg; currentAvisoCallback=typeof item==="object"&&item.cb?item.cb:null;
-  $("#avisoMsg").textContent=msg; $("#dlgAviso").showModal(); }
+  const msg=typeof item==="string"?item:item.msg;
+  const okTxt=typeof item==="object"&&item.ok?item.ok:"Entendido";
+  currentAvisoCallback=typeof item==="object"&&item.cb?item.cb:null;
+  $("#avisoMsg").textContent=msg; $("#avisoOk").textContent=okTxt; $("#dlgAviso").showModal(); }
 $("#avisoOk").onclick=()=>{ $("#dlgAviso").close(); const cb=currentAvisoCallback; currentAvisoCallback=null;
   setTimeout(()=>{ sigAviso(); if(!avisoCola.length&&cb) cb(); },50); };
 
@@ -807,8 +809,8 @@ function finalizarSet(){
   if(S.setsA>=paraGanar || S.setsR>=paraGanar){
     S.terminado=true;
     S.log.push({separador:true, accion:`🏆 Set ${setNum} ${marcador} · FIN DEL PARTIDO (${S.setsA}-${S.setsR})`, hora:new Date().toISOString()});
-    aviso(`🏆 ¡Partido terminado!\nGanó ${S.setsA>S.setsR?S.miEquipo:S.rival}  (${S.setsA}-${S.setsR} en sets).`);
-    setTimeout(()=>{ exportJSON(); }, 600);
+    guardar(); render();
+    aviso({msg:`🏆 ¡Partido terminado!\nGanó ${S.setsA>S.setsR?S.miEquipo:S.rival}  (${S.setsA}-${S.setsR} en sets).\n\nToca "💾 Guardar" para descargar el archivo.`, cb:exportJSON, ok:"💾 Guardar"});
     return;
   }
   // Pre-cargar con la alineación inicial del set que terminó (no cómo terminó)
@@ -823,7 +825,7 @@ function finalizarSet(){
   S.log.push({separador:true, accion:`— Set ${setNum} ${marcador} para ${ganador} · empieza Set ${S.set} —`, hora:new Date().toISOString()});
   cfgModoSet=true; cfgEsDecisivo=esDecisivo; cfgEquipoNombre=S.miEquipo; cfgAsignacion={...rotAnterior, L:libAnterior};
   const msgSaque=esDecisivo?"\nSet decisivo · se sortea quién saca.":(!S.sacandoInicial?"  (saca el rival)":"  (saca mi equipo)");
-  aviso({msg:`Set ${setNum} para ${ganador}  (${marcador}).${msgSaque}\nEmpieza el Set ${S.set} · Confirma o ajusta la alineación.`, cb:abrirConfigNuevoSet});
+  aviso({msg:`Set ${setNum} para ${ganador}  (${marcador}).${msgSaque}\nEmpieza el Set ${S.set} · Confirma o ajusta la alineación.`, cb:()=>{ exportJSON(); abrirConfigNuevoSet(); }, ok:"💾 Guardar y continuar"});
 }
 function bancaActual(){
   const enCancha=new Set(Object.values(S.rotacion).map(String));
@@ -1123,8 +1125,7 @@ function confirmarCerrarSet(){
     S.terminado=true;
     S.log.push({separador:true, accion:`🏆 Set ${setNum} ${marcador} · FIN DEL PARTIDO (${S.setsA}-${S.setsR})`, hora:new Date().toISOString()});
     guardar(); render();
-    aviso(`🏆 ¡Partido terminado!\nGanó ${S.setsA>S.setsR?S.miEquipo:S.rival}  (${S.setsA}-${S.setsR} en sets).`);
-    setTimeout(()=>{ exportJSON(); }, 600);
+    aviso({msg:`🏆 ¡Partido terminado!\nGanó ${S.setsA>S.setsR?S.miEquipo:S.rival}  (${S.setsA}-${S.setsR} en sets).\n\nToca "💾 Guardar" para descargar el archivo.`, cb:exportJSON, ok:"💾 Guardar"});
     return;
   }
   const esDecisivo=(S.set+1===S.bestOf);
@@ -1138,7 +1139,7 @@ function confirmarCerrarSet(){
   S.log.push({separador:true, accion:`— Set ${setNum} ${marcador} para ${ganador} · empieza Set ${S.set} (cierre manual) —`, hora:new Date().toISOString()});
   sxNuevoSet();
   guardar(); render();
-  aviso({msg:`Set ${setNum} para ${ganador}  (${marcador}).\nEmpieza el Set ${S.set} · Confirma o ajusta la alineación.`, cb:abrirConfigNuevoSet});
+  aviso({msg:`Set ${setNum} para ${ganador}  (${marcador}).\nEmpieza el Set ${S.set} · Confirma o ajusta la alineación.`, cb:()=>{ exportJSON(); abrirConfigNuevoSet(); }, ok:"💾 Guardar y continuar"});
 }
 
 function cargarPartidoGuardado(file){
